@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  sentinel-soc-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentinel-soc-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEMO_MODE=true
+      - ADMIN_USERNAME=soc_admin
+      - ADMIN_PASSWORD=SentinelAdmin2026!
+      - SECRET_KEY=sentinel-super-secret-key-change-in-production-2026
+      # Azure Sentinel Configuration (Uncomment and fill when live)
+      # - AZURE_TENANT_ID=your-tenant-id
+      # - AZURE_CLIENT_ID=your-client-id
+      # - AZURE_CLIENT_SECRET=your-client-secret
+      # - AZURE_SUBSCRIPTION_ID=your-sub-id
+      # - AZURE_RESOURCE_GROUP_NAME=your-rg-name
+      # - AZURE_WORKSPACE_NAME=your-sentinel-ws
+      # - AZURE_WORKSPACE_ID=your-log-analytics-workspace-id
+      # - LLM_PROVIDER=azure_openai
+      # - AZURE_OPENAI_ENDPOINT=https://your-openai.openai.azure.com/
+      # - AZURE_OPENAI_API_KEY=your-api-key
+      # - AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+    restart: unless-stopped

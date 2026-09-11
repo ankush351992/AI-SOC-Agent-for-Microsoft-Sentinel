@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 dark:bg-[#0A0E17] dark:text-slate-200 transition-colors duration-200;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-[#0F172A];
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-[#1E293B] rounded-sm;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-[#334155];
+}
+
+.mono-font {
+  font-family: 'JetBrains Mono', monospace;
+}
