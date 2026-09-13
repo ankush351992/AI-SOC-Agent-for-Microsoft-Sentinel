@@ -4,7 +4,7 @@ import asyncio
 from typing import Dict, Any, List, Optional, Callable
 from app.config import settings
 from app.agent.prompts import SOC_TRIAGE_SYSTEM_PROMPT, SOC_CHAT_SYSTEM_PROMPT
-from app.agent.tools import AGENT_TOOL_DEFINITIONS, execute_tool_call
+from app.agent.tools import execute_tool_call
 from app.services.sentinel_client import sentinel_client
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ class SentinelTriageAgent:
         kql_findings = []
 
         if extracted_accounts or extracted_ips:
-            kql_query = f"SigninLogs | where TimeGenerated >= ago(24h) | summarize count(), make_set(IPAddress), make_set(Location) by UserPrincipalName"
+            kql_query = "SigninLogs | where TimeGenerated >= ago(24h) | summarize count(), make_set(IPAddress), make_set(Location) by UserPrincipalName"
             await notify("KQL_EXECUTION", f"Hunting in Log Analytics for SigninLogs baseline: {kql_query}", {"query": kql_query})
             res = await execute_tool_call("run_kql_query", json.dumps({"query": kql_query, "timespan_hours": 24}))
             executed_kql_queries.append(kql_query)
@@ -123,8 +123,8 @@ class SentinelTriageAgent:
         await notify("REASONING", "Synthesizing evidence with AI reasoning engine, calculating confidence score, and mapping to MITRE ATT&CK tactics...")
         await asyncio.sleep(0.8)
 
-        # Check if live OpenAI model is configured
-        if self.openai_client:
+        # Check if live OpenAI model is configured and active
+        if self.openai_client and not settings.DEMO_MODE:
             try:
                 model_name = settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o"
                 prompt_messages = [
@@ -218,7 +218,7 @@ class SentinelTriageAgent:
         desc_lower = description.lower()
 
         # Contextual RCA Generation based on Actual Alert Category
-        if "credential" in title_lower or "service principal" in title_lower or "application" in title_lower or "key" in title_lower:
+        if "credential" in title_lower or "service principal" in title_lower or "credential" in desc_lower or "service principal" in desc_lower or "key" in title_lower:
             initial_vector = "Administrative or delegated identity added a new secret/certificate credential to an Entra ID Application / Service Principal where no previous verify KeyCredential was present."
             patient_zero_str = f"{account_name} (Entra ID Actor / Identity)"
             
@@ -243,8 +243,8 @@ class SentinelTriageAgent:
             blast_targets = [e.get("name") for e in entities if e.get("kind") in ["AzureResource", "CloudApplication"]] or ["Entra ID App Registration", "Service Principal Key Store"]
 
             capa = [
-                f"Immediately revoke newly added credentials/certificates from the affected Service Principal in Entra ID App Registrations.",
-                f"Audit permissions and consent granted to the Application (e.g. Directory.ReadWrite.All, Mail.ReadWrite).",
+                "Immediately revoke newly added credentials/certificates from the affected Service Principal in Entra ID App Registrations.",
+                "Audit permissions and consent granted to the Application (e.g. Directory.ReadWrite.All, Mail.ReadWrite).",
                 f"Invalidate active OAuth refresh tokens for identity '{account_name}' and require FIDO2 MFA challenge.",
                 "Review Azure Activity and Directory AuditLogs for any downstream API calls made under this Service Principal identity."
             ]
@@ -456,7 +456,7 @@ CommonSecurityLog
 **Query Purpose:** Tracks bidirectional firewall connections to external IP `{ip_entity}`, evaluating data transfer volumes and connection frequency."""
 
         elif "privilege" in msg_lower or "role" in msg_lower or "entra" in msg_lower or "admin" in msg_lower:
-            return f"""Here is a specialized **Entra ID Privilege Escalation & Role Modification** KQL query:
+            return """Here is a specialized **Entra ID Privilege Escalation & Role Modification** KQL query:
 
 ```kql
 AuditLogs

@@ -1,6 +1,6 @@
 import logging
 import httpx
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from app.config import settings
 

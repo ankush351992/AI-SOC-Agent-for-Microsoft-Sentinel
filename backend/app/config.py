@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12 # 12 hours
     ADMIN_USERNAME: str = "soc_admin"
-    ADMIN_PASSWORD: str = "SentinelAdmin2026!"
+    ADMIN_PASSWORD: Optional[str] = None
     
     # Azure Sentinel & Azure Resource Manager Config
     AZURE_TENANT_ID: Optional[str] = None

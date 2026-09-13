@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 from app.services.kql_runner import kql_runner
 from app.services.threat_intel import threat_intel_service
 from app.services.sentinel_client import sentinel_client

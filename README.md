@@ -16,7 +16,7 @@ brew install python@3.11 node
 
 # Step 2: Clone the Repository
 git clone https://github.com/ankush351992/AI-SOC-Agent-for-Microsoft-Sentinel.git
-cd sentinel-soc-agent
+cd AI-SOC-Agent-for-Microsoft-Sentinel
 
 # Step 3: Setup & Start Backend (Terminal 1)
 cd backend
@@ -31,7 +31,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 In a **New Terminal Tab** (`Cmd + T`):
 ```bash
 # Step 4: Setup & Start Frontend (Terminal 2)
-cd sentinel-soc-agent/frontend
+cd AI-SOC-Agent-for-Microsoft-Sentinel/frontend
 npm install
 npm run dev
 ```
@@ -47,7 +47,7 @@ Open **PowerShell** and run:
 ```powershell
 # Step 1: Clone the Repository
 git clone https://github.com/ankush351992/AI-SOC-Agent-for-Microsoft-Sentinel.git
-cd sentinel-soc-agent
+cd AI-SOC-Agent-for-Microsoft-Sentinel
 
 # Step 2: Setup & Start Backend (PowerShell Window 1)
 cd backend
@@ -62,7 +62,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 In a **Second PowerShell Window**:
 ```powershell
 # Step 3: Setup & Start Frontend (PowerShell Window 2)
-cd sentinel-soc-agent\frontend
+cd AI-SOC-Agent-for-Microsoft-Sentinel\frontend
 npm install
 npm run dev
 ```
@@ -71,15 +71,22 @@ npm run dev
 
 ---
 
-### 🔑 Default Login Credentials
+### 🔑 First-Run Authentication & Security
 
-| Role | Username | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **🛡️ SOC Admin / Lead** | `soc_admin` | `SentinelAdmin2026!` | Full Admin (Triage, Entra ID Assign, Remediation, Settings) |
-| **🔍 Tier-2 SOC Analyst** | `analyst` | `Analyst2026!` | Triage, KQL Studio, Investigation Reports & Classification |
-| **⚡ Tier-1 Investigator** | `tier1_analyst` | `Analyst2026!` | Incident Queue Monitoring & Triage Review |
+To prevent hardcoded default credentials in production, initial passwords for the built-in accounts (`soc_admin`, `analyst`, `tier1_analyst`) are generated randomly on first application startup using a cryptographically secure generator and printed **once** in the backend startup logs:
 
-*(Pre-filled 1-click login buttons are also available directly on the login screen).*
+```text
+================================================================================
+🔒 FIRST-RUN INITIALIZATION: Generated Initial Account Credentials
+Each account must reset its password on first login. Plaintext passwords are not persisted.
+--------------------------------------------------------------------------------
+  Username: soc_admin          | Role: admin      | Temporary Password: <generated>
+  Username: analyst            | Role: analyst    | Temporary Password: <generated>
+  Username: tier1_analyst      | Role: analyst    | Temporary Password: <generated>
+================================================================================
+```
+
+When signing in for the first time, entering the temporary password will automatically prompt you to choose a new permanent password (minimum 8 characters) before granting console access.
 
 ---
 
@@ -163,7 +170,7 @@ flowchart TD
   - Mandatory Close & Classify modal with dynamic reasons and closing audit notes.
 - **Production AKS & Cloud Ready**:
   - Includes enterprise Kubernetes manifests (`aks/`) with non-root security context.
-  - Verified **CycloneDX v1.5 SBOM** with 0 CVEs.
+  - Compatible with **CycloneDX v1.5 SBOM** generation standards and dependency vulnerability scanning tools (such as Anchore Grype and `pip-audit`).
 
 ---
 

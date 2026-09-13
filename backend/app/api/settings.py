@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, Optional
+from typing import Optional
 from pydantic import BaseModel
 from app.config import settings
 from app.auth.jwt_handler import get_current_user, User

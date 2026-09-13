@@ -26,6 +26,7 @@ class User(BaseModel):
     role: str
     full_name: str
     disabled: Optional[bool] = False
+    must_reset_password: Optional[bool] = False
 
 def get_password_hash(password: str) -> str:
     """Secure PBKDF2-HMAC-SHA256 password hashing (independent of bcrypt/passlib version bugs)"""
@@ -42,41 +43,71 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         return False
 
-# Hardcoded default users for local/SOC environment (Can be wired to Entra ID/SSO)
-USERS_DB = {
-    settings.ADMIN_USERNAME: {
-        "username": settings.ADMIN_USERNAME,
+# In-memory user database (initialized with random credentials on first run)
+USERS_DB = {}
+
+DEFAULT_ACCOUNTS_CONFIG = [
+    {
+        "username": settings.ADMIN_USERNAME or "soc_admin",
         "full_name": "SOC Lead Engineer",
         "email": "soc-admin@cybersecurity.corp",
-        "hashed_password": get_password_hash(settings.ADMIN_PASSWORD),
         "role": "admin",
-        "disabled": False,
     },
-    "analyst": {
+    {
         "username": "analyst",
         "full_name": "Tier-2 SOC Analyst",
         "email": "analyst@cybersecurity.corp",
-        "hashed_password": get_password_hash("Analyst2026!"),
         "role": "analyst",
-        "disabled": False,
     },
-    "tier1_analyst": {
+    {
         "username": "tier1_analyst",
         "full_name": "Tier-1 SOC Investigator",
         "email": "tier1@cybersecurity.corp",
-        "hashed_password": get_password_hash("Analyst2026!"),
         "role": "analyst",
-        "disabled": False,
     },
-    "incident_responder": {
-        "username": "incident_responder",
-        "full_name": "Incident Response Specialist",
-        "email": "ir@cybersecurity.corp",
-        "hashed_password": get_password_hash("Responder2026!"),
-        "role": "responder",
-        "disabled": False,
-    }
-}
+]
+
+def init_default_users() -> dict:
+    """
+    On application startup, checks if each default account exists in the user store.
+    For any that don't exist yet, generates a cryptographically secure random password,
+    hashes it, and creates the user with must_reset_password = True.
+    Logs the credentials ONCE clearly marked as first-run output and never persists plaintext.
+    """
+    import logging
+    auth_logger = logging.getLogger("sentinel_soc_agent.auth")
+    newly_generated = []
+
+    for account in DEFAULT_ACCOUNTS_CONFIG:
+        username = account["username"]
+        if username not in USERS_DB:
+            raw_password = secrets.token_urlsafe(12)
+            USERS_DB[username] = {
+                "username": username,
+                "full_name": account["full_name"],
+                "email": account["email"],
+                "hashed_password": get_password_hash(raw_password),
+                "role": account["role"],
+                "disabled": False,
+                "must_reset_password": True,
+            }
+            newly_generated.append((username, account["role"], raw_password))
+
+    if newly_generated:
+        banner = "\n" + "=" * 80 + "\n"
+        banner += "🔒 FIRST-RUN INITIALIZATION: Generated Initial Account Credentials\n"
+        banner += "Each account must reset its password on first login. Plaintext passwords are not persisted.\n"
+        banner += "-" * 80 + "\n"
+        for username, role, pwd in newly_generated:
+            banner += f"  Username: {username:<18} | Role: {role:<10} | Temporary Password: {pwd}\n"
+        banner += "=" * 80 + "\n"
+        auth_logger.warning(banner)
+        print(banner)
+
+    return USERS_DB
+
+# Ensure default users are initialized on module load
+init_default_users()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()

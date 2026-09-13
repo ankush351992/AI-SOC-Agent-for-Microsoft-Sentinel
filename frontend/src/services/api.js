@@ -43,6 +43,21 @@ export const authApi = {
     }
     return res.data;
   },
+  resetPassword: async (username, currentPassword, newPassword) => {
+    const res = await api.post('/auth/reset-password', {
+      username,
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    if (res.data && res.data.access_token) {
+      localStorage.setItem('sentinel_token', res.data.access_token);
+      localStorage.setItem('sentinel_user', JSON.stringify({
+        username: res.data.username,
+        role: res.data.role
+      }));
+    }
+    return res.data;
+  },
   getCurrentUser: async () => {
     const res = await api.get('/auth/me');
     return res.data;

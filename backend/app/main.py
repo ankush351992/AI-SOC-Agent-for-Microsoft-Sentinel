@@ -1,13 +1,14 @@
 import os
 import json
 import logging
-import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from contextlib import asynccontextmanager
 from app.config import settings
+from app.auth.jwt_handler import init_default_users
 from app.auth.routes import router as auth_router
 from app.api.incidents import router as incidents_router
 from app.api.triage import router as triage_router, TRIAGE_REPORTS_CACHE
@@ -22,10 +23,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("sentinel_soc_agent")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_default_users()
+    yield
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="Autonomous AI Triage Agent for Microsoft Sentinel & Defender XDR",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Configuration

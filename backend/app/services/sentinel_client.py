@@ -951,7 +951,7 @@ class SentinelClient:
                             # 2. Put updated incident with new owner
                             resp = await client.put(url, headers=headers, json={"properties": props})
                             if resp.status_code in [200, 201]:
-                                assign_desc = f"unassigned" if is_unassigning else f"assigned to {user_name} ({user_upn})"
+                                assign_desc = "unassigned" if is_unassigning else f"assigned to {user_name} ({user_upn})"
                                 logger.info(f"Incident {incident_id} successfully {assign_desc} in Microsoft Sentinel.")
                                 
                                 # 3. Auto-post audit tracking comment
@@ -974,7 +974,7 @@ class SentinelClient:
             if inc["id"] == incident_id or str(inc.get("incidentNumber")) == incident_id:
                 inc["assignedTo"] = user_name or user_upn if not is_unassigning else None
                 inc["lastModifiedTimeUtc"] = datetime.utcnow().isoformat() + "Z"
-                assign_desc = f"unassigned" if is_unassigning else f"assigned to {user_name} ({user_upn})"
+                assign_desc = "unassigned" if is_unassigning else f"assigned to {user_name} ({user_upn})"
                 inc.setdefault("comments", []).append({
                     "id": f"c-{uuid.uuid4().hex[:6]}",
                     "author": assigned_by,

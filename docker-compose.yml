@@ -12,7 +12,6 @@ services:
       - APP_ENV=production
       - DEMO_MODE=true
       - ADMIN_USERNAME=soc_admin
-      - ADMIN_PASSWORD=SentinelAdmin2026!
       - SECRET_KEY=sentinel-super-secret-key-change-in-production-2026
       # Azure Sentinel Configuration (Uncomment and fill when live)
       # - AZURE_TENANT_ID=your-tenant-id
