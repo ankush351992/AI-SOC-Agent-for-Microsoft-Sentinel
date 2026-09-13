@@ -1,0 +1,365 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:0d94df43-c862-420d-847c-3a14e0d7d108",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-13T16:33:12.365117+00:00",
+    "tools": [
+      {
+        "vendor": "Sentinel-AI-SOC",
+        "name": "Sentinel-AI-SOC-SBOM-Generator",
+        "version": "1.0.0"
+      }
+    ],
+    "authors": [
+      {
+        "name": "Ankush Chouhan",
+        "email": "ankush.sec@gmail.com"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "pkg:app/sentinel-soc-agent@1.0.0",
+      "name": "sentinel-soc-agent",
+      "version": "1.0.0",
+      "description": "Autonomous AI SOC Incident Triage Platform for Microsoft Sentinel & Azure Log Analytics",
+      "supplier": {
+        "name": "Sentinel AI SOC Project",
+        "url": [
+          "https://github.com/ankush351992/AI-SOC-Agent-for-Microsoft-Sentinel"
+        ]
+      }
+    }
+  },
+  "components": [
+    {
+      "type": "container",
+      "bom-ref": "pkg:docker/python@3.11-slim",
+      "name": "python",
+      "version": "3.11-slim",
+      "purl": "pkg:docker/python@3.11-slim",
+      "description": "Hardened Python 3.11 Debian Bookworm minimal runtime base image",
+      "licenses": [
+        {
+          "license": {
+            "id": "PSF-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "container",
+      "bom-ref": "pkg:docker/node@18-alpine",
+      "name": "node",
+      "version": "18-alpine",
+      "purl": "pkg:docker/node@18-alpine",
+      "description": "Multi-stage Node.js build container for frontend compilation",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/fastapi@0.141.1",
+      "name": "fastapi",
+      "version": "0.141.1",
+      "purl": "pkg:pypi/fastapi@0.141.1",
+      "description": "High performance async REST API framework",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/uvicorn@0.52.4",
+      "name": "uvicorn",
+      "version": "0.52.4",
+      "purl": "pkg:pypi/uvicorn@0.52.4",
+      "description": "High throughput ASGI web server",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/azure-identity@1.25.3",
+      "name": "azure-identity",
+      "version": "1.25.3",
+      "purl": "pkg:pypi/azure-identity@1.25.3",
+      "description": "Azure Active Directory / Entra ID token provider",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/azure-mgmt-securityinsight@2.0.0b3",
+      "name": "azure-mgmt-securityinsight",
+      "version": "2.0.0b3",
+      "purl": "pkg:pypi/azure-mgmt-securityinsight@2.0.0b3",
+      "description": "Microsoft Sentinel ARM REST client",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/azure-monitor-query@2.0.0",
+      "name": "azure-monitor-query",
+      "version": "2.0.0",
+      "purl": "pkg:pypi/azure-monitor-query@2.0.0",
+      "description": "Azure Log Analytics KQL query engine",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/openai@3.3.1",
+      "name": "openai",
+      "version": "3.3.1",
+      "purl": "pkg:pypi/openai@3.3.1",
+      "description": "Azure OpenAI LLM integration client",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/pydantic@2.13.4",
+      "name": "pydantic",
+      "version": "2.13.4",
+      "purl": "pkg:pypi/pydantic@2.13.4",
+      "description": "Data validation and settings management using Python type annotations",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/pydantic-settings@2.15.0",
+      "name": "pydantic-settings",
+      "version": "2.15.0",
+      "purl": "pkg:pypi/pydantic-settings@2.15.0",
+      "description": "Settings management using Pydantic V2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/httpx@0.28.1",
+      "name": "httpx",
+      "version": "0.28.1",
+      "purl": "pkg:pypi/httpx@0.28.1",
+      "description": "Next generation async HTTP client",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/cryptography@50.0.0",
+      "name": "cryptography",
+      "version": "50.0.0",
+      "purl": "pkg:pypi/cryptography@50.0.0",
+      "description": "Cryptographic recipes and primitives",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/python-jose@3.5.0",
+      "name": "python-jose",
+      "version": "3.5.0",
+      "purl": "pkg:pypi/python-jose@3.5.0",
+      "description": "JOSE (JSON Object Signing and Encryption) implementation in Python",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:pypi/websockets@17.0.1",
+      "name": "websockets",
+      "version": "17.0.1",
+      "purl": "pkg:pypi/websockets@17.0.1",
+      "description": "Real-time investigation telemetry streaming",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/react@18.2.0",
+      "name": "react",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react@18.2.0",
+      "description": "The library for web and native user interfaces",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/react-dom@18.2.0",
+      "name": "react-dom",
+      "version": "18.2.0",
+      "purl": "pkg:npm/react-dom@18.2.0",
+      "description": "React package for working with the DOM",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lucide-react@0.359.0",
+      "name": "lucide-react",
+      "version": "0.359.0",
+      "purl": "pkg:npm/lucide-react@0.359.0",
+      "description": "Lucide icons for React",
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/axios@1.8.2",
+      "name": "axios",
+      "version": "1.8.2",
+      "purl": "pkg:npm/axios@1.8.2",
+      "description": "Promise based HTTP client for the browser",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/tailwindcss@3.4.1",
+      "name": "tailwindcss",
+      "version": "3.4.1",
+      "purl": "pkg:npm/tailwindcss@3.4.1",
+      "description": "A utility-first CSS framework for rapid UI development",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/vite@5.4.20",
+      "name": "vite",
+      "version": "5.4.20",
+      "purl": "pkg:npm/vite@5.4.20",
+      "description": "Next Generation Frontend Tooling",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:app/sentinel-soc-agent@1.0.0",
+      "dependsOn": [
+        "pkg:docker/python@3.11-slim",
+        "pkg:docker/node@18-alpine",
+        "pkg:pypi/fastapi@0.141.1",
+        "pkg:pypi/uvicorn@0.52.4",
+        "pkg:pypi/azure-identity@1.25.3",
+        "pkg:pypi/azure-mgmt-securityinsight@2.0.0b3",
+        "pkg:pypi/azure-monitor-query@2.0.0",
+        "pkg:pypi/openai@3.3.1",
+        "pkg:pypi/pydantic@2.13.4",
+        "pkg:pypi/pydantic-settings@2.15.0",
+        "pkg:pypi/httpx@0.28.1",
+        "pkg:pypi/cryptography@50.0.0",
+        "pkg:pypi/python-jose@3.5.0",
+        "pkg:pypi/websockets@17.0.1",
+        "pkg:npm/react@18.2.0",
+        "pkg:npm/react-dom@18.2.0",
+        "pkg:npm/lucide-react@0.359.0",
+        "pkg:npm/axios@1.8.2",
+        "pkg:npm/tailwindcss@3.4.1",
+        "pkg:npm/vite@5.4.20"
+      ]
+    }
+  ]
+}
