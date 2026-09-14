@@ -139,12 +139,25 @@ class SentinelTriageAgent:
                     }
                 ]
                 
-                response = self.openai_client.chat.completions.create(
-                    model=model_name,
-                    messages=prompt_messages,
-                    response_format={"type": "json_object"},
-                    temperature=0.1
-                )
+                try:
+                    response = self.openai_client.chat.completions.create(
+                        model=model_name,
+                        messages=prompt_messages,
+                        response_format={"type": "json_object"},
+                        max_completion_tokens=2500
+                    )
+                except Exception as param_err:
+                    if "max_completion_tokens" in str(param_err).lower() or "unsupported" in str(param_err).lower():
+                        response = self.openai_client.chat.completions.create(
+                            model=model_name,
+                            messages=prompt_messages,
+                            response_format={"type": "json_object"},
+                            max_tokens=2500,
+                            temperature=0.1
+                        )
+                    else:
+                        raise param_err
+
                 verdict_json = json.loads(response.choices[0].message.content)
                 await notify("VERDICT_GENERATED", f"AI Triage completed with verdict: {verdict_json.get('verdict')}", verdict_json)
                 
@@ -409,11 +422,22 @@ class SentinelTriageAgent:
                     messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
                 messages.append({"role": "user", "content": user_message})
 
-                response = self.openai_client.chat.completions.create(
-                    model=model_name,
-                    messages=messages,
-                    temperature=0.2
-                )
+                try:
+                    response = self.openai_client.chat.completions.create(
+                        model=model_name,
+                        messages=messages,
+                        max_completion_tokens=2000
+                    )
+                except Exception as param_err:
+                    if "max_completion_tokens" in str(param_err).lower() or "unsupported" in str(param_err).lower():
+                        response = self.openai_client.chat.completions.create(
+                            model=model_name,
+                            messages=messages,
+                            max_tokens=2000,
+                            temperature=0.2
+                        )
+                    else:
+                        raise param_err
                 return response.choices[0].message.content
             except Exception as e:
                 logger.error(f"Chat error: {e}")

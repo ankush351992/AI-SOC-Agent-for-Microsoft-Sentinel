@@ -118,13 +118,45 @@ class KQLRunner:
                     "row_count": total_rows
                 }
             except Exception as e:
-                logger.error(f"Error querying Log Analytics: {e}")
-                return {
-                    "status": "ERROR",
-                    "source": "AZURE_LOG_ANALYTICS (LIVE)",
-                    "workspace_name": settings.AZURE_WORKSPACE_NAME,
-                    "error": str(e)
-                }
+                logger.warning(f"LogsQueryClient query error: {e}. Attempting direct ARM REST Query API...")
+                # Direct ARM Log Analytics REST Query fallback
+                try:
+                    from app.services.sentinel_client import sentinel_client
+                    arm_token = sentinel_client._get_arm_token()
+                    if arm_token and settings.AZURE_SUBSCRIPTION_ID and settings.AZURE_RESOURCE_GROUP_NAME and settings.AZURE_WORKSPACE_NAME:
+                        arm_url = f"https://management.azure.com/subscriptions/{settings.AZURE_SUBSCRIPTION_ID}/resourceGroups/{settings.AZURE_RESOURCE_GROUP_NAME}/providers/Microsoft.OperationalInsights/workspaces/{settings.AZURE_WORKSPACE_NAME}/api/query?api-version=2020-08-01"
+                        start_time = datetime.utcnow()
+                        async with httpx.AsyncClient(timeout=25.0) as http_c:
+                            arm_resp = await http_c.post(
+                                arm_url,
+                                headers={"Authorization": f"Bearer {arm_token}", "Content-Type": "application/json"},
+                                json={"query": query}
+                            )
+                            if arm_resp.status_code == 200:
+                                raw_tables = arm_resp.json().get("tables", [])
+                                tables = []
+                                for t in raw_tables:
+                                    col_names = [c.get("name", str(c)) for c in t.get("columns", [])]
+                                    t_rows = []
+                                    for r in t.get("rows", []):
+                                        t_rows.append(dict(zip(col_names, r)))
+                                    tables.append({"name": t.get("name", "PrimaryResult"), "columns": col_names, "rows": t_rows, "count": len(t_rows)})
+                                latency_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+                                total_rows = sum(t["count"] for t in tables)
+                                logger.info(f"ARM KQL Query executed in {latency_ms}ms, returned {total_rows} rows.")
+                                return {
+                                    "status": "SUCCESS",
+                                    "source": "AZURE_LOG_ANALYTICS (ARM REST)",
+                                    "workspace_name": settings.AZURE_WORKSPACE_NAME,
+                                    "query": query,
+                                    "latency_ms": latency_ms,
+                                    "tables": tables,
+                                    "row_count": total_rows
+                                }
+                except Exception as arm_err:
+                    logger.error(f"ARM REST Query error: {arm_err}")
+
+                logger.warning(f"Live Log Analytics execution unavailable ({e}). Falling back to simulation engine.")
 
         # Simulated KQL execution based on query patterns
         query_lower = query.lower()

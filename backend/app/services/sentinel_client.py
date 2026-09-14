@@ -355,14 +355,29 @@ class SentinelClient:
                 self.is_live = False
 
     def _get_arm_token(self) -> Optional[str]:
-        if not self.credential:
-            return None
-        try:
-            token_obj = self.credential.get_token("https://management.azure.com/.default")
-            return token_obj.token
-        except Exception as e:
-            logger.error(f"Failed to obtain Azure ARM bearer token: {e}")
-            return None
+        if self.credential:
+            try:
+                token_obj = self.credential.get_token("https://management.azure.com/.default")
+                return token_obj.token
+            except Exception:
+                pass
+        # Direct OAuth2 REST token fallback
+        if settings.AZURE_TENANT_ID and settings.AZURE_CLIENT_ID and settings.AZURE_CLIENT_SECRET:
+            try:
+                token_url = f"https://login.microsoftonline.com/{settings.AZURE_TENANT_ID}/oauth2/v2.0/token"
+                data = {
+                    "grant_type": "client_credentials",
+                    "client_id": settings.AZURE_CLIENT_ID,
+                    "client_secret": settings.AZURE_CLIENT_SECRET,
+                    "scope": "https://management.azure.com/.default"
+                }
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.post(token_url, data=data)
+                    if resp.status_code == 200:
+                        return resp.json().get("access_token")
+            except Exception as e:
+                logger.error(f"Failed to obtain Azure ARM bearer token: {e}")
+        return None
 
     def _get_base_url(self) -> str:
         return f"https://management.azure.com/subscriptions/{self.subscription_id}/resourceGroups/{self.resource_group}/providers/Microsoft.OperationalInsights/workspaces/{self.workspace_name}/providers/Microsoft.SecurityInsights"
