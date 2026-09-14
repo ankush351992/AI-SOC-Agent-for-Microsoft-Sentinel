@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-soc-agent-config
+  namespace: sentinel-soc
+data:
+  APP_ENV: "production"
+  PORT: "8000"
+  DEMO_MODE: "false" # Set to false in live AKS cluster
+  USE_MANAGED_IDENTITY: "true"
+  AZURE_SUBSCRIPTION_ID: "00000000-0000-0000-0000-000000000000"
+  AZURE_RESOURCE_GROUP_NAME: "rg-sentinel-prod"
+  AZURE_WORKSPACE_NAME: "law-sentinel-prod"
+  AZURE_WORKSPACE_ID: "00000000-0000-0000-0000-000000000000"
+  LLM_PROVIDER: "azure_openai"
+  AZURE_OPENAI_ENDPOINT: "https://your-openai-resource.openai.azure.com/"
+  AZURE_OPENAI_DEPLOYMENT_NAME: "gpt-4o"
+  AZURE_OPENAI_API_VERSION: "2024-02-15-preview"
+  ENABLE_AUTO_POLLING: "false"
+  AUTO_POST_COMMENTS_TO_SENTINEL: "true"
+  AUTO_CLOSE_FALSE_POSITIVES: "false"

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sentinel-soc-agent-sa
+  namespace: sentinel-soc
+  annotations:
+    # Replace with your Azure User-Assigned Managed Identity Client ID
+    azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000000"
+  labels:
+    azure.workload.identity/use: "true"
