@@ -95,14 +95,17 @@ def init_default_users() -> dict:
 
     if newly_generated:
         banner = "\n" + "=" * 80 + "\n"
-        banner += "🔒 FIRST-RUN INITIALIZATION: Generated Initial Account Credentials\n"
-        banner += "Each account must reset its password on first login. Plaintext passwords are not persisted.\n"
+        banner += "[SECURITY WARNING] First-time setup: temporary credentials generated.\n"
+        banner += "You MUST change these passwords on first login! Plaintext passwords are not persisted.\n"
         banner += "-" * 80 + "\n"
         for username, role, pwd in newly_generated:
             banner += f"  Username: {username:<18} | Role: {role:<10} | Temporary Password: {pwd}\n"
         banner += "=" * 80 + "\n"
         auth_logger.warning(banner)
-        print(banner)
+        try:
+            print(banner)
+        except Exception:
+            pass
 
     return USERS_DB
 
