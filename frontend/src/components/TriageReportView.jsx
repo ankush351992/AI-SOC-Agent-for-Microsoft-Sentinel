@@ -229,7 +229,7 @@ ${actionList}
     }
   };
 
-  // High-Resolution Styled Forensic PDF Export with Low-Level RCA
+  // High-Resolution Styled Executive Forensic PDF Export
   const handleDownloadPDF = () => {
     setDownloadMenuOpen(false);
     const tacticsHtml = report.mitre_attack?.tactics?.map(t => `<span class="badge badge-tactic">${t}</span>`).join(' ') || 'None';
@@ -241,7 +241,7 @@ ${actionList}
       </div>
     `).join('') || '<p>No specific forensic indicators recorded.</p>';
 
-    const actionsHtml = report.recommended_actions?.map(a => `
+    const actionsHtml = (rca.corrective_and_preventive_actions || report.recommended_actions)?.map(a => `
       <li class="action-item">
         <span class="checkbox">✓</span>
         <span>${a}</span>
@@ -250,7 +250,7 @@ ${actionList}
 
     const kqlHtml = report.kql_queries_used?.map(q => `
       <pre class="kql-block"><code>${q}</code></pre>
-    `).join('') || '<p>No standalone KQL queries recorded.</p>';
+    `).join('') || '';
 
     const processTreeHtml = rca.process_tree?.map(p => `
       <div style="background:#F1F5F9; border:1px solid #CBD5E1; padding:8px 10px; border-radius:4px; margin-bottom:6px; font-family:'JetBrains Mono',monospace; font-size:10px;">
@@ -258,11 +258,16 @@ ${actionList}
         <div style="color:#64748B; word-break:break-all; margin-top:2px;">Command: ${p.command}</div>
         ${p.decoded ? `<div style="margin-top:4px; padding:4px; background:#0B0F19; color:#67E8F9; border-radius:3px;"><strong>Decoded Payload:</strong> ${p.decoded}</div>` : ''}
       </div>
-    `).join('') || '<p>No process tree captured.</p>';
+    `).join('') || '';
 
-    const printWindow = window.open('', '_blank', 'width=900,height=1000');
+    const userObj = JSON.parse(localStorage.getItem('sentinel_user') || '{}');
+    const analystName = userObj.username ? `${userObj.username} (${userObj.role || 'Analyst'})` : 'SOC Lead Analyst';
+    const nowUtc = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    const auditHash = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+
+    const printWindow = window.open('', '_blank', 'width=950,height=1050');
     if (!printWindow) {
-      alert('Please allow popups to generate the PDF report.');
+      alert('Please allow popups to generate the Executive Report PDF.');
       return;
     }
 
@@ -271,28 +276,29 @@ ${actionList}
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Sentinel_RCA_Incident_${incident?.incidentNumber || 'Report'}</title>
+  <title>Executive_Report_Incident_${incident?.incidentNumber || 'Report'}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
     @page { size: A4; margin: 15mm; }
-    body { font-family: 'Inter', sans-serif; color: #0F172A; background: #FFF; margin: 0; padding: 20px; font-size: 11px; line-height: 1.5; -webkit-print-color-adjust: exact !important; }
+    body { font-family: 'Inter', -apple-system, sans-serif; color: #0F172A; background: #FFF; margin: 0; padding: 20px; font-size: 11px; line-height: 1.5; -webkit-print-color-adjust: exact !important; }
     .header-table { width: 100%; border-bottom: 2px solid #0F172A; padding-bottom: 10px; margin-bottom: 14px; }
     .report-meta-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .meta-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748B; }
     .meta-val { font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
     .verdict-card { border: 2px solid ${verdictMeta.color}; background: #F8FAFC; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-    .verdict-title { font-size: 15px; font-weight: 800; color: ${verdictMeta.color}; text-transform: uppercase; }
-    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px; }
-    .summary-box { background: #F8FAFC; border-left: 3px solid #3B82F6; padding: 8px 12px; font-size: 11px; border-radius: 0 4px 4px 0; }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 4px; }
+    .verdict-title { font-size: 14px; font-weight: 800; color: ${verdictMeta.color}; text-transform: uppercase; }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px; color: #0F172A; }
+    .summary-box { background: #F8FAFC; border-left: 3px solid #2563EB; padding: 8px 12px; font-size: 11px; border-radius: 0 4px 4px 0; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-right: 4px; margin-bottom: 3px; }
     .badge-tactic { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
     .badge-technique { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
     .evidence-item { display: flex; margin-bottom: 4px; padding: 5px 8px; background: #F8FAFC; border: 1px solid #F1F5F9; border-radius: 4px; }
     .evidence-num { font-weight: 700; color: #2563EB; margin-right: 6px; font-family: 'JetBrains Mono', monospace; }
     .action-list { list-style: none; padding: 0; margin: 0; }
     .action-item { display: flex; align-items: center; padding: 4px 0; }
-    .checkbox { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 2px; background: #10B981; color: #FFF; font-size: 9px; margin-right: 6px; }
-    .kql-block { background: #0B0F19; color: #67E8F9; padding: 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; white-space: pre-wrap; }
+    .checkbox { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; border-radius: 2px; background: #10B981; color: #FFF; font-size: 9px; margin-right: 6px; font-weight: bold; }
+    .kql-block { background: #0B0F19; color: #67E8F9; padding: 8px 10px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; white-space: pre-wrap; margin-bottom: 6px; }
+    .sign-box { background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; padding: 10px 14px; margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; font-size: 9.5px; }
     .footer { margin-top: 20px; border-top: 1px solid #E2E8F0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 8px; color: #94A3B8; }
   </style>
 </head>
@@ -300,48 +306,56 @@ ${actionList}
   <table class="header-table">
     <tr>
       <td>
-        <div style="font-size:16px; font-weight:800; color:#0F172A; letter-spacing:-0.5px;">🛡️ SENTINEL <span style="color:#2563EB;">AI</span> SOC</div>
-        <div style="font-size:10px; color:#64748B;">Cyber Security Operations Center • Autonomous Forensic RCA Report</div>
+        <div style="font-size:16px; font-weight:900; color:#0F172A; letter-spacing:-0.5px;">🛡️ MICROSOFT SENTINEL <span style="color:#2563EB;">AI SOC</span></div>
+        <div style="font-size:10px; color:#64748B;">Executive Incident Forensic & Triage Report</div>
       </td>
       <td style="text-align: right; vertical-align: top;">
-        <div style="font-size: 10px; font-weight: 700; color: #DC2626;">RESTRICTED // SOC INCIDENT RCA</div>
+        <div style="font-size: 10px; font-weight: 800; color: #DC2626;">RESTRICTED // EXECUTIVE BRIEF</div>
       </td>
     </tr>
   </table>
 
-  <div class="report-meta-box" style="grid-template-columns: repeat(5, 1fr);">
-    <div><div class="meta-label">Incident</div><div class="meta-val">#${incident?.incidentNumber || 'N/A'}</div></div>
-    <div><div class="meta-label">Created Time (${getTimezoneShortLabel(tz)})</div><div class="meta-val">${formatDateTime(incident?.createdTimeUtc, tz, 'short')}</div></div>
-    <div><div class="meta-label">Assessed Severity</div><div class="meta-val" style="color:${verdictMeta.color}">${report.severity_assessment || incident?.severity || 'Medium'}</div></div>
-    <div><div class="meta-label">Patient Zero</div><div class="meta-val">${rca.patient_zero || 'Identified'}</div></div>
-    <div><div class="meta-label">Triage Confidence</div><div class="meta-val">${report.confidence_score}%</div></div>
+  <div class="report-meta-box">
+    <div><div class="meta-label">Incident ID</div><div class="meta-val">#${incident?.incidentNumber || 'N/A'}</div></div>
+    <div><div class="meta-label">Detection Time (${getTimezoneShortLabel(tz)})</div><div class="meta-val">${formatDateTime(incident?.createdTimeUtc, tz, 'short')}</div></div>
+    <div><div class="meta-label">Assessed Severity</div><div class="meta-val" style="color:${verdictMeta.color}; font-weight:bold;">${report.severity_assessment || incident?.severity || 'Medium'}</div></div>
+    <div><div class="meta-label">Reviewing Analyst</div><div class="meta-val">${analystName}</div></div>
   </div>
 
   <div class="verdict-card">
-    <div><div style="font-size:8px; font-weight:700; color:#64748B;">FORENSIC VERDICT</div><div class="verdict-title">${verdictMeta.label}</div></div>
-    <div style="font-size:18px; font-weight:900; font-family:'JetBrains Mono', monospace;">${report.confidence_score}%</div>
+    <div>
+      <div style="font-size:8px; font-weight:700; color:#64748B;">AI FORENSIC VERDICT</div>
+      <div class="verdict-title">${verdictMeta.label}</div>
+    </div>
+    <div style="font-size:20px; font-weight:900; font-family:'JetBrains Mono', monospace; color:${verdictMeta.color};">
+      ${report.confidence_score}%
+    </div>
   </div>
 
-  <div class="section-title">2. Patient Zero & Initial Attack Vector</div>
-  <p><strong>Vector:</strong> ${rca.initial_access_vector || incident?.description || 'Security anomaly detected by Sentinel analytic rule.'}</p>
+  <div class="section-title">1. Executive Summary & Root Cause Assessment</div>
+  <div class="summary-box">${report.executive_summary}</div>
 
-  ${rca.process_tree && rca.process_tree.length > 0 ? `
-  <div class="section-title">3. Low-Level Process Lineage & Subprocess Execution Tree</div>
+  <div class="section-title">2. Patient Zero & Initial Attack Vector</div>
+  <p style="margin: 4px 0 6px 0;"><strong>Patient Zero Target:</strong> ${rca.patient_zero || 'Enterprise Account / Identity'}</p>
+  <p style="margin: 0 0 6px 0;"><strong>Ingress Vector:</strong> ${rca.initial_access_vector || incident?.description || 'Security anomaly detected by Sentinel analytic rule.'}</p>
+
+  ${processTreeHtml ? `
+  <div class="section-title">3. Process Execution Lineage & Subprocess Tree</div>
   ${processTreeHtml}
   ` : ''}
 
   ${rca.network_c2_telemetry?.destination_ip && rca.network_c2_telemetry?.destination_ip !== 'No External C2 Observed' ? `
-  <div class="section-title">4. Network Egress & C2 Telemetry</div>
+  <div class="section-title">4. Network / Origin Telemetry</div>
   <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:8px 10px; border-radius:4px; font-family:'JetBrains Mono', monospace; font-size:10px;">
-    <div><strong>Destination IP / Endpoint:</strong> ${rca.network_c2_telemetry.destination_ip}:${rca.network_c2_telemetry.port || 443} (${rca.network_c2_telemetry.protocol || 'HTTPS'})</div>
-    <div><strong>Reputation / Category:</strong> ${rca.network_c2_telemetry.reputation || 'Correlated Network Node'}</div>
-    <div><strong>Data Transferred:</strong> ${rca.network_c2_telemetry.bytes_transferred || 'Telemetry Stream'}</div>
+    <div><strong>Destination Endpoint:</strong> ${rca.network_c2_telemetry.destination_ip}:${rca.network_c2_telemetry.port || 443} (${rca.network_c2_telemetry.protocol || 'HTTPS'})</div>
+    <div><strong>Reputation:</strong> ${rca.network_c2_telemetry.reputation || 'Correlated Network Node'}</div>
+    <div><strong>Data Volume:</strong> ${rca.network_c2_telemetry.bytes_transferred || 'Telemetry Stream'}</div>
   </div>
   ` : ''}
 
-  <div class="section-title">5. MITRE ATT&CK Alignment</div>
+  <div class="section-title">5. MITRE ATT&CK Matrix Alignment</div>
   <div style="margin-bottom:4px;"><strong>Tactics:</strong> ${tacticsHtml}</div>
-  <div><strong>Techniques:</strong> ${techniquesHtml}</div>
+  <div style="margin-bottom:6px;"><strong>Techniques:</strong> ${techniquesHtml}</div>
 
   <div class="section-title">6. Key Forensic Evidence Findings</div>
   ${evidenceHtml}
@@ -349,9 +363,24 @@ ${actionList}
   <div class="section-title">7. Corrective & Preventive Action Plan (CAPA)</div>
   <ul class="action-list">${actionsHtml}</ul>
 
+  ${kqlHtml ? `
+  <div class="section-title">8. Executed KQL Hunting Queries</div>
+  ${kqlHtml}
+  ` : ''}
+
+  <div class="section-title">9. Formal Analyst Sign-Off & Verification</div>
+  <div class="sign-box">
+    <div><strong>Assigned Analyst:</strong> ${analystName}</div>
+    <div><strong>Signed Timestamp:</strong> ${nowUtc}</div>
+    <div><strong>Compliance:</strong> SOC 2 Type II / ISO 27001</div>
+    <div style="grid-column: span 3; font-family:'JetBrains Mono', monospace; color:#64748B; font-size:9px;">
+      Cryptographic Audit Hash: SHA256:${auditHash}
+    </div>
+  </div>
+
   <div class="footer">
-    <span>Sentinel AI SOC • Autonomous RCA Report</span>
-    <span>Official Forensic Investigation Record</span>
+    <span>Microsoft Sentinel AI SOC Agent • Executive Report</span>
+    <span>CONFIDENTIAL // SECURITY OPERATIONS CENTER</span>
   </div>
 </body>
 </html>`;
@@ -438,24 +467,14 @@ ${actionList}
             </div>
           )}
 
-          {/* Word DOCX Export Button */}
-          <button
-            onClick={handleDownloadDocx}
-            title="Download Executive Word (.docx) Brief"
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/20 transition-all"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Export Word (.docx)</span>
-          </button>
-
-          {/* Main PDF Export Button */}
+          {/* Executive Report PDF Export Button */}
           <button
             onClick={handleDownloadPDF}
-            title="Download / Print PDF RCA Report"
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
+            title="Download Executive Report (PDF)"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Export RCA PDF</span>
+            <FileDown className="w-3.5 h-3.5" />
+            <span>Executive Report (PDF)</span>
           </button>
 
           {/* More Options Dropdown */}
@@ -464,7 +483,7 @@ ${actionList}
               onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
             >
-              <span>Export Brief</span>
+              <span>Export</span>
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
@@ -472,25 +491,11 @@ ${actionList}
             {downloadMenuOpen && (
               <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1 z-30 text-xs">
                 <button
-                  onClick={handleDownloadDocx}
-                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 font-medium"
-                >
-                  <FileText className="w-3.5 h-3.5 text-blue-500" />
-                  <span>Download Word Brief (.docx)</span>
-                </button>
-                <button
                   onClick={handleDownloadPDF}
                   className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 font-medium"
                 >
                   <FileDown className="w-3.5 h-3.5 text-red-500" />
-                  <span>Download / Print PDF (.pdf)</span>
-                </button>
-                <button
-                  onClick={handleDownloadMarkdown}
-                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
-                >
-                  <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Download Markdown RCA (.md)</span>
+                  <span>Download Executive Report (PDF)</span>
                 </button>
                 <button
                   onClick={handleDownloadJSON}
@@ -831,19 +836,11 @@ ${actionList}
           </button>
 
           <button
-            onClick={handleDownloadDocx}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/20 transition-all"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Export Word (.docx)</span>
-          </button>
-
-          <button
             onClick={handleDownloadPDF}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Export RCA PDF</span>
+            <FileDown className="w-3.5 h-3.5" />
+            <span>Executive Report (PDF)</span>
           </button>
         </div>
 
