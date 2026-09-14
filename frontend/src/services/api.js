@@ -140,6 +140,35 @@ export const triageApi = {
       timespan_hours: timespanHours
     });
     return res.data;
+  },
+  downloadReport: async (id, format = 'docx', incNumber = 'Report') => {
+    const res = await api.get(`/triage/${id}/download`, {
+      params: { format },
+      responseType: format === 'json' || format === 'markdown' ? 'text' : 'blob'
+    });
+    
+    let mimeType = 'application/octet-stream';
+    let ext = format;
+    if (format === 'docx') {
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      ext = 'docx';
+    } else if (format === 'json') {
+      mimeType = 'application/json';
+      ext = 'json';
+    } else if (format === 'markdown') {
+      mimeType = 'text/markdown';
+      ext = 'md';
+    }
+
+    const blob = new Blob([res.data], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Sentinel-Executive-Brief-Incident-${incNumber}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 };
 

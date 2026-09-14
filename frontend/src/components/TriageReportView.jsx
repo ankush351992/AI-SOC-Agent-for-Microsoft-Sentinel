@@ -211,6 +211,24 @@ ${actionList}
     downloadFile(jsonStr, fileName, 'application/json;charset=utf-8');
   };
 
+  const handleDownloadDocx = async () => {
+    setDownloadMenuOpen(false);
+    try {
+      await triageApi.downloadReport(incident.id, 'docx', incident?.incidentNumber || 'Report');
+    } catch (err) {
+      alert('Failed to download Word report: ' + err.message);
+    }
+  };
+
+  const handleDownloadMarkdown = async () => {
+    setDownloadMenuOpen(false);
+    try {
+      await triageApi.downloadReport(incident.id, 'markdown', incident?.incidentNumber || 'Report');
+    } catch (err) {
+      alert('Failed to download Markdown report: ' + err.message);
+    }
+  };
+
   // High-Resolution Styled Forensic PDF Export with Low-Level RCA
   const handleDownloadPDF = () => {
     setDownloadMenuOpen(false);
@@ -420,11 +438,21 @@ ${actionList}
             </div>
           )}
 
+          {/* Word DOCX Export Button */}
+          <button
+            onClick={handleDownloadDocx}
+            title="Download Executive Word (.docx) Brief"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/20 transition-all"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Export Word (.docx)</span>
+          </button>
+
           {/* Main PDF Export Button */}
           <button
             onClick={handleDownloadPDF}
             title="Download / Print PDF RCA Report"
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Export RCA PDF</span>
@@ -436,19 +464,33 @@ ${actionList}
               onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
             >
-              <span>More</span>
+              <span>Export Brief</span>
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
             {/* Dropdown Menu */}
             {downloadMenuOpen && (
-              <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1 z-30 text-xs">
+              <div className="absolute right-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl py-1 z-30 text-xs">
+                <button
+                  onClick={handleDownloadDocx}
+                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 font-medium"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-500" />
+                  <span>Download Word Brief (.docx)</span>
+                </button>
                 <button
                   onClick={handleDownloadPDF}
                   className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 font-medium"
                 >
                   <FileDown className="w-3.5 h-3.5 text-red-500" />
-                  <span>Download RCA PDF (.pdf)</span>
+                  <span>Download / Print PDF (.pdf)</span>
+                </button>
+                <button
+                  onClick={handleDownloadMarkdown}
+                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2"
+                >
+                  <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Download Markdown RCA (.md)</span>
                 </button>
                 <button
                   onClick={handleDownloadJSON}
@@ -462,7 +504,7 @@ ${actionList}
                   className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 border-t border-slate-200 dark:border-slate-800"
                 >
                   <Copy className="w-3.5 h-3.5 text-purple-500" />
-                  <span>{copied ? 'Copied to Clipboard!' : 'Copy Summary'}</span>
+                  <span>{copied ? 'Copied to Clipboard!' : 'Copy Markdown Summary'}</span>
                 </button>
               </div>
             )}
@@ -789,8 +831,16 @@ ${actionList}
           </button>
 
           <button
+            onClick={handleDownloadDocx}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-blue-600/20 transition-all"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Export Word (.docx)</span>
+          </button>
+
+          <button
             onClick={handleDownloadPDF}
-            className="flex items-center space-x-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
+            className="flex items-center space-x-1.5 px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-md shadow-red-600/20 transition-all"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Export RCA PDF</span>
