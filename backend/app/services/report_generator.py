@@ -141,7 +141,7 @@ def generate_docx_report(
     meta_items = [
         ("Incident Number & Title:", f"#{inc_num} - {inc_title}", "Assessed Severity:", severity.upper()),
         ("Detection / Trigger Time:", str(created_time), "Lead Reviewing Analyst:", analyst_name),
-        ("Patient Zero Target:", str(rca.get("patient_zero") or "Target Identity / Host"), "AI Triage Engine:", "Sentinel AI SOC Agent (gpt-5.2)")
+        ("Patient Zero Target:", str(rca.get("patient_zero") or "Target Identity / Host"), "AI Triage Engine:", "Sentinel AI SOC Agent (gpt-4o-mini)")
     ]
 
     for row_idx, (k1, v1, k2, v2) in enumerate(meta_items):

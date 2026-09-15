@@ -126,7 +126,7 @@ class SentinelTriageAgent:
         # Check if live OpenAI model is configured and active
         if self.openai_client and not settings.DEMO_MODE:
             try:
-                model_name = settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o"
+                model_name = settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o-mini"
                 prompt_messages = [
                     {"role": "system", "content": SOC_TRIAGE_SYSTEM_PROMPT},
                     {

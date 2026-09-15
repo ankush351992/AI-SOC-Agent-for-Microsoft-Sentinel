@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     AZURE_OPENAI_ENDPOINT: Optional[str] = None
     AZURE_OPENAI_API_KEY: Optional[str] = None
     AZURE_OPENAI_API_VERSION: str = "2024-02-15-preview"
-    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4o"
+    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4o-mini"
     
     # Threat Intelligence API Keys & Providers
     ABUSEIPDB_API_KEY: Optional[str] = None
