@@ -34,7 +34,7 @@ Built with a ReAct (Reasoning + Acting) decision loop and dynamic hybrid model s
 - ⚡ **Interactive SOAR Playbook Selector:** Click **"Run Playbook"** on any incident to search, filter by category (`Containment`, `Identity`, `Network`, `Notification`, `Ticketing`, `Forensics`), and trigger live Azure Logic Apps (`Microsoft.Logic/workflows`) or built-in SOAR workflows with custom execution tracking notes and auto-synced Sentinel audit comments.
 - 🧠 **Intelligent Hybrid AI Model Segregation:** Seamlessly routes routine, single-alert low-severity triage (~80% volume) to `gpt-4o-mini` for maximum token economy while escalating complex multi-stage/high-severity incidents (~20% volume) to `gpt-6-astra` for deep forensic root-cause analysis.
 - 🔒 **First-Run Ephemeral Passwords & Zero-Trust Security:** Ephemeral startup passwords generated via `secrets.token_urlsafe(12)` on boot, with mandatory first-login password reset modals enforcing strong credentials before console access.
-- 📄 **Executive Briefing Export Suite:** Instant 1-click exports of publication-ready Executive Incident Reports in **PDF** (WeasyPrint formatted), **Microsoft Word (.docx)**, **Markdown**, and **JSON** with dynamic AI model stamps.
+- 📄 **Executive Briefing Export Suite:** Instant 1-click exports of publication-ready Executive Incident Reports in **PDF** (WeasyPrint formatted), **Markdown**, and **JSON** with dynamic AI model stamps.
 - 👥 **Live Microsoft Entra ID Directory Assignment:** Assign incidents directly to SOC analysts and engineers fetched in real-time from your live Microsoft Entra ID (Azure AD) tenant.
 - 🏷️ **NIST-Compliant Mandatory Closure Modal:** Requires explicit SOC classification (`TruePositive`, `FalsePositive`, `BenignPositive`, `Undetermined`) and detailed closing reasons before resolving incidents.
 
@@ -265,7 +265,7 @@ flowchart TD
 - **Intelligent Hybrid AI Model Segregation**:
   - Dynamically routes routine, single-alert low-severity triage (~80% volume) to `gpt-4o-mini` for maximum token economy.
   - Automatically escalates complex, multi-stage, high/critical incidents (~20% volume) to `gpt-6-astra` for deep forensic reasoning.
-  - Stamped on all Executive Brief reports (PDF, Word DOCX, Markdown).
+  - Stamped on all Executive Brief reports (PDF, Markdown, JSON).
 - **Interactive Azure Logic Apps & SOAR Playbook Selector**:
   - Live discovery of Azure Logic Apps (`Microsoft.Logic/workflows`) and built-in Sentinel SOAR playbooks.
   - 1-click execution with target entity context (IPs, Hosts, Accounts), custom execution notes, unique run IDs, and automated Sentinel audit comments.
