@@ -9,7 +9,7 @@ and Markdown executive incident forensic & triage reports.
 import io
 import hashlib
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 import docx
 from docx.shared import Inches, Pt, RGBColor
@@ -75,17 +75,14 @@ def generate_docx_report(
     # Verdict Colors
     if verdict == "TRUE_POSITIVE":
         verdict_label = "TRUE POSITIVE (CONFIRMED MALICIOUS THREAT)"
-        verdict_hex = "DC2626"
         verdict_bg = "FEE2E2"
         v_rgb = RGBColor(0xDC, 0x26, 0x26)
     elif verdict == "FALSE_POSITIVE":
         verdict_label = "FALSE POSITIVE (BENIGN / NO THREAT DETECTED)"
-        verdict_hex = "059669"
         verdict_bg = "D1FAE5"
         v_rgb = RGBColor(0x05, 0x96, 0x69)
     else:
         verdict_label = "SUSPICIOUS (MANUAL ESCALATION REQUIRED)"
-        verdict_hex = "D97706"
         verdict_bg = "FEF3C7"
         v_rgb = RGBColor(0xD9, 0x77, 0x06)
 
@@ -517,7 +514,7 @@ def generate_html_report(
     <tr>
       <td>
         <div style="font-size:16px; font-weight:900; color:#0F172A; letter-spacing:-0.5px;">🛡️ MICROSOFT SENTINEL <span style="color:#2563EB;">AI SOC</span></div>
-        <div style="font-size:10px; color:#64748B;">Executive Incident Forensic & Root Cause Analysis (RCA) Brief</div>
+        <div style="font-size:10px; color:#64748B;">{inc_title} — Executive Incident Forensic & Root Cause Analysis (RCA) Brief</div>
       </td>
       <td style="text-align: right; vertical-align: top;">
         <div style="font-size: 10px; font-weight: 800; color: #DC2626;">RESTRICTED // SOC-IR</div>
@@ -529,7 +526,7 @@ def generate_html_report(
     <div><div class="meta-lbl">Incident ID</div><div class="meta-val">#{inc_num}</div></div>
     <div><div class="meta-lbl">Detection Time</div><div class="meta-val">{created_time}</div></div>
     <div><div class="meta-lbl">Assessed Severity</div><div class="meta-val" style="color:{v_color}; font-weight:bold;">{severity.upper()}</div></div>
-    <div><div class="meta-lbl">AI Triage Model</div><div class="meta-val" style="color:#2563EB;">{model_used}</div></div>
+    <div><div class="meta-lbl">AI Triage Model</div><div class="meta-val" style="color:#2563EB;">{model_used} ({reasoning_tier})</div></div>
     <div><div class="meta-lbl">Reviewing Analyst</div><div class="meta-val">{analyst_name}</div></div>
   </div>
 

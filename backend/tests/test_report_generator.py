@@ -1,4 +1,3 @@
-import pytest
 import io
 import docx
 from app.services.report_generator import generate_docx_report, generate_html_report
