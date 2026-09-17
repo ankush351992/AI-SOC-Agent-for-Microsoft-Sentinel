@@ -108,6 +108,10 @@ export const incidentsApi = {
     const res = await api.get('/incidents/users/entra');
     return res.data;
   },
+  getPlaybooks: async () => {
+    const res = await api.get('/incidents/playbooks');
+    return res.data;
+  },
   assignIncident: async (id, payload) => {
     const res = await api.patch(`/incidents/${id}/assign`, payload);
     return res.data;

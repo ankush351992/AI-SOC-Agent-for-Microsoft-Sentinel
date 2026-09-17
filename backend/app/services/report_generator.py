@@ -138,10 +138,13 @@ def generate_docx_report(
     meta_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     meta_tbl.autofit = False
 
+    model_used = str(report.get("model_used") or "Sentinel AI Engine")
+    reasoning_tier = str(report.get("reasoning_tier") or "fast").replace("_", " ").title()
+
     meta_items = [
         ("Incident Number & Title:", f"#{inc_num} - {inc_title}", "Assessed Severity:", severity.upper()),
         ("Detection / Trigger Time:", str(created_time), "Lead Reviewing Analyst:", analyst_name),
-        ("Patient Zero Target:", str(rca.get("patient_zero") or "Target Identity / Host"), "AI Triage Engine:", "Sentinel AI SOC Agent (gpt-4o-mini)")
+        ("Patient Zero Target:", str(rca.get("patient_zero") or "Target Identity / Host"), "AI Triage Model:", f"{model_used} ({reasoning_tier})")
     ]
 
     for row_idx, (k1, v1, k2, v2) in enumerate(meta_items):
@@ -477,6 +480,9 @@ def generate_html_report(
     audit_payload = f"{inc_num}:{verdict}:{confidence}:{analyst_name}:{created_time}"
     audit_hash = hashlib.sha256(audit_payload.encode()).hexdigest()
 
+    model_used = str(report.get("model_used") or "gpt-4o-mini")
+    reasoning_tier = str(report.get("reasoning_tier") or "fast").replace("_", " ").title()
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -487,8 +493,8 @@ def generate_html_report(
     @page {{ size: A4; margin: 15mm; }}
     body {{ font-family: 'Inter', -apple-system, sans-serif; color: #0F172A; background: #FFF; margin: 0; padding: 20px; font-size: 11px; line-height: 1.5; -webkit-print-color-adjust: exact !important; }}
     .header-tbl {{ width: 100%; border-bottom: 2px solid #0F172A; padding-bottom: 10px; margin-bottom: 14px; }}
-    .meta-grid {{ background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }}
-    .meta-lbl {{ font-size: 8.5px; font-weight: 700; text-transform: uppercase; color: #64748B; }}
+    .meta-grid {{ background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }}
+    .meta-lbl {{ font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748B; }}
     .meta-val {{ font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }}
     .verdict-box {{ border: 2px solid {v_color}; background: {v_bg}; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }}
     .sec-h {{ font-size: 11px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; margin-top: 14px; margin-bottom: 8px; color: #0F172A; }}
@@ -523,6 +529,7 @@ def generate_html_report(
     <div><div class="meta-lbl">Incident ID</div><div class="meta-val">#{inc_num}</div></div>
     <div><div class="meta-lbl">Detection Time</div><div class="meta-val">{created_time}</div></div>
     <div><div class="meta-lbl">Assessed Severity</div><div class="meta-val" style="color:{v_color}; font-weight:bold;">{severity.upper()}</div></div>
+    <div><div class="meta-lbl">AI Triage Model</div><div class="meta-val" style="color:#2563EB;">{model_used}</div></div>
     <div><div class="meta-lbl">Reviewing Analyst</div><div class="meta-val">{analyst_name}</div></div>
   </div>
 
@@ -536,7 +543,7 @@ def generate_html_report(
     </div>
   </div>
 
-  <div class="sec-h">1. Executive Summary & Root Cause Assessment</div>
+  <div class="sec-h">1. Executive Summary & Root Cause Assessment <span style="float:right; font-size:9px; font-weight:600; text-transform:none; color:#64748B;">Model: {model_used}</span></div>
   <div class="box-p">{report.get("executive_summary", "No summary provided.")}</div>
 
   <div class="sec-h">2. Patient Zero & Ingress Vector</div>

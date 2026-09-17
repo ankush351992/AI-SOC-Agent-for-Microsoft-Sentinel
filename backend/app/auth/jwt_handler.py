@@ -70,9 +70,10 @@ DEFAULT_ACCOUNTS_CONFIG = [
 def init_default_users() -> dict:
     """
     On application startup, checks if each default account exists in the user store.
-    For any that don't exist yet, generates a cryptographically secure random password,
-    hashes it, and creates the user with must_reset_password = True.
-    Logs the credentials ONCE clearly marked as first-run output and never persists plaintext.
+    For ALL default accounts (including soc_admin, analyst, tier1_analyst), generates a
+    cryptographically secure random temporary password, hashes it, and creates the account
+    with must_reset_password = True.
+    Logs and outputs the generated temporary credentials clearly.
     """
     import logging
     auth_logger = logging.getLogger("sentinel_soc_agent.auth")
@@ -95,8 +96,8 @@ def init_default_users() -> dict:
 
     if newly_generated:
         banner = "\n" + "=" * 80 + "\n"
-        banner += "[SECURITY WARNING] First-time setup: temporary credentials generated.\n"
-        banner += "You MUST change these passwords on first login! Plaintext passwords are not persisted.\n"
+        banner += "[SECURITY NOTICE] All user accounts initialized with random temporary credentials.\n"
+        banner += "Every user MUST reset their password on first login via the portal.\n"
         banner += "-" * 80 + "\n"
         for username, role, pwd in newly_generated:
             banner += f"  Username: {username:<18} | Role: {role:<10} | Temporary Password: {pwd}\n"

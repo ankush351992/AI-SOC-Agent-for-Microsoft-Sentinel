@@ -16,6 +16,8 @@ MOCK_REPORT = {
     "verdict": "TRUE_POSITIVE",
     "confidence_score": 95,
     "severity_assessment": "High",
+    "model_used": "gpt-6-astra",
+    "reasoning_tier": "deep_reasoning",
     "executive_summary": "Confirmed unauthorized access from Tor exit node targeting finance admin.",
     "mitre_attack": {
         "tactics": ["Initial Access", "Defense Evasion"],
@@ -64,6 +66,8 @@ def test_generate_docx_report():
     assert "MICROSOFT SENTINEL SOC" in all_text
     assert "Confirmed unauthorized access" in all_text
     assert "Test Analyst" in all_text
+    assert "gpt-6-astra" in all_text
+    assert "Deep Reasoning" in all_text
 
 def test_generate_html_report():
     html_output = generate_html_report(MOCK_INCIDENT, MOCK_REPORT, analyst_name="Test Analyst")
@@ -72,3 +76,4 @@ def test_generate_html_report():
     assert "#101" in html_output
     assert "185.220.101.5" in html_output
     assert "Test Analyst" in html_output
+    assert "gpt-6-astra" in html_output

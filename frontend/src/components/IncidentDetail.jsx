@@ -31,7 +31,11 @@ import {
   Tag,
   ShieldCheck,
   HelpCircle,
-  FileEdit
+  FileEdit,
+  Search,
+  Workflow,
+  Sliders,
+  Layers
 } from 'lucide-react';
 import { incidentsApi } from '../services/api';
 import { formatDateTime, formatRelativeTime, getUserTimezone } from '../utils/timezone';
@@ -99,6 +103,127 @@ export default function IncidentDetail({
   const [remediationModal, setRemediationModal] = useState(null); // { type, title, entity, description }
   const [isRemediating, setIsRemediating] = useState(false);
   const [remediationResult, setRemediationResult] = useState(null);
+
+  const FALLBACK_PLAYBOOKS = [
+    {
+      id: 'playbook-soar-isolate-endpoint',
+      name: 'SOAR-Isolate-Endpoint-LogicApp',
+      displayName: 'Isolate Endpoint Device via Defender for Endpoint',
+      description: 'Trigger Microsoft Defender for Endpoint automated device network isolation and forensic snapshot preservation.',
+      category: 'Containment',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-revoke-sessions',
+      name: 'SOAR-Revoke-User-Sessions-LogicApp',
+      displayName: 'Revoke Entra ID User Sessions & Invalidate Tokens',
+      description: 'Invalidates all active refresh tokens and sign-in sessions for compromised accounts in Microsoft Entra ID (Azure AD).',
+      category: 'Identity',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-block-ip',
+      name: 'SOAR-Block-Malicious-IP-LogicApp',
+      displayName: 'Block Malicious IP at Azure Perimeter & NSG',
+      description: 'Appends malicious origin IP to Azure Perimeter Firewall drop list and pushes indicators to Sentinel Threat Intelligence feed.',
+      category: 'Network',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-disable-account',
+      name: 'SOAR-Disable-Compromised-Account-LogicApp',
+      displayName: 'Disable Compromised Account in Microsoft Entra ID',
+      description: 'Temporarily disables user account object in Microsoft Entra ID to halt active adversary lateral movement.',
+      category: 'Identity',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-teams-slack-alert',
+      name: 'SOAR-Post-Incident-Teams-Slack-LogicApp',
+      displayName: 'Broadcast Incident Triage to SOC Teams / Slack',
+      description: 'Posts an interactive investigation card with MITRE ATT&CK tactics, verdict, and response buttons to the #soc-war-room channel.',
+      category: 'Notification',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-servicenow-ticket',
+      name: 'SOAR-Create-ServiceNow-P1-Ticket-LogicApp',
+      displayName: 'Create ServiceNow Major Incident (P1/P2) & Sync',
+      description: 'Generates a corresponding security incident ticket in ServiceNow ITSM with bidirectional status and comment synchronization.',
+      category: 'Ticketing',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-full-containment',
+      name: 'SOAR-Full-Incident-Containment-Playbook',
+      displayName: 'Full Multi-Stage Containment & Forensic Snapshot',
+      description: 'Automates simultaneous host isolation, user session revocation, perimeter firewall block, and ticket creation.',
+      category: 'Containment',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    },
+    {
+      id: 'playbook-soar-defender-scan',
+      name: 'SOAR-Trigger-Defender-Antivirus-Scan-LogicApp',
+      displayName: 'Trigger On-Demand Defender Antivirus Scan',
+      description: 'Initiates an immediate full antivirus scan and collects forensic investigation package via Microsoft Defender for Endpoint.',
+      category: 'Forensics',
+      triggerType: 'Microsoft Sentinel Incident Trigger',
+      state: 'Enabled',
+      resourceGroup: 'sentinel-demo'
+    }
+  ];
+
+  // Dedicated Azure Logic Apps / SOAR Playbook Modal State
+  const [showPlaybookModal, setShowPlaybookModal] = useState(false);
+  const [playbooks, setPlaybooks] = useState(FALLBACK_PLAYBOOKS);
+  const [loadingPlaybooks, setLoadingPlaybooks] = useState(false);
+  const [selectedPlaybookName, setSelectedPlaybookName] = useState('SOAR-Full-Incident-Containment-Playbook');
+  const [playbookSearch, setPlaybookSearch] = useState('');
+  const [playbookCategory, setPlaybookCategory] = useState('All');
+  const [playbookNotes, setPlaybookNotes] = useState('');
+  const [isTriggeringPlaybook, setIsTriggeringPlaybook] = useState(false);
+  const [playbookResult, setPlaybookResult] = useState(null);
+
+  const fetchPlaybooks = async () => {
+    setLoadingPlaybooks(true);
+    try {
+      const res = await incidentsApi.getPlaybooks();
+      if (res?.playbooks && res.playbooks.length > 0) {
+        setPlaybooks(res.playbooks);
+        if (!selectedPlaybookName || !res.playbooks.some(p => p.name === selectedPlaybookName)) {
+          setSelectedPlaybookName(res.playbooks[0].name);
+        }
+      }
+    } catch (err) {
+      console.warn('Using built-in SOAR playbooks catalog:', err);
+    } finally {
+      setLoadingPlaybooks(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaybooks();
+  }, []);
+
+  useEffect(() => {
+    if (showPlaybookModal) {
+      fetchPlaybooks();
+    }
+  }, [showPlaybookModal]);
 
   if (!incident) {
     return (
@@ -224,6 +349,60 @@ export default function IncidentDetail({
       });
     } finally {
       setIsRemediating(false);
+    }
+  };
+
+  const getPlaybookCategoryColor = (category) => {
+    switch ((category || '').toLowerCase()) {
+      case 'containment':
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
+      case 'identity':
+        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30';
+      case 'network':
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30';
+      case 'notification':
+        return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30';
+      case 'ticketing':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30';
+      case 'forensics':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
+      default:
+        return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30';
+    }
+  };
+
+  const handleTriggerPlaybook = async (e) => {
+    e?.preventDefault();
+    if (!selectedPlaybookName) return;
+    setIsTriggeringPlaybook(true);
+    setPlaybookResult(null);
+
+    const chosen = playbooks.find(p => p.name === selectedPlaybookName) || { name: selectedPlaybookName };
+
+    try {
+      const res = await incidentsApi.executeRemediation(
+        incident.id,
+        'trigger_playbook',
+        `Incident #${incident.incidentNumber}`,
+        {
+          playbook_name: chosen.name,
+          notes: playbookNotes.trim() || `Automated SOAR response execution for Incident #${incident.incidentNumber}`
+        }
+      );
+      setPlaybookResult(res);
+      setAssignNotification({
+        type: 'success',
+        text: `Playbook "${chosen.name}" successfully triggered. Audit logged to Sentinel.`
+      });
+      setTimeout(() => setAssignNotification(null), 5000);
+      if (onUpdateIncident) onUpdateIncident();
+    } catch (err) {
+      setPlaybookResult({
+        status: 'ERROR',
+        result_message: err.response?.data?.detail || err.message || 'Failed to trigger Azure Logic App playbook.'
+      });
+    } finally {
+      setIsTriggeringPlaybook(false);
     }
   };
 
@@ -497,21 +676,16 @@ export default function IncidentDetail({
             {/* Action 4: Trigger Playbook */}
             <button
               onClick={() => {
-                setRemediationResult(null);
-                setRemediationModal({
-                  type: 'trigger_playbook',
-                  title: 'Trigger Sentinel SOAR Playbook',
-                  entity: `Incident #${incident.incidentNumber}`,
-                  description: 'Executes the automated Azure Logic App response playbook with ticketing & containment steps.'
-                });
+                setPlaybookResult(null);
+                setShowPlaybookModal(true);
               }}
               className="p-2.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-purple-500/50 flex flex-col items-start space-y-1 transition-all text-left group"
             >
               <div className="flex items-center space-x-1.5 text-purple-400 font-semibold group-hover:text-purple-300">
-                <Zap className="w-3.5 h-3.5" />
+                <Workflow className="w-3.5 h-3.5" />
                 <span>Run Playbook</span>
               </div>
-              <span className="text-[10px] text-slate-400 truncate w-full">Logic App SOAR</span>
+              <span className="text-[10px] text-slate-400 truncate w-full">Select Logic App</span>
             </button>
           </div>
         </div>
@@ -961,6 +1135,224 @@ export default function IncidentDetail({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Azure Logic Apps / SOAR Playbook Selector Modal */}
+      {showPlaybookModal && (
+        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0B0F19] border border-slate-300 dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] p-6 shadow-2xl flex flex-col space-y-4 animate-in fade-in duration-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                  <Workflow className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Select & Trigger Azure Logic App (SOAR Playbook)
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                    Incident #{incident.incidentNumber} • {incident.title}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPlaybookModal(false);
+                  setPlaybookResult(null);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Search & Category Filter Header */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={playbookSearch}
+                  onChange={(e) => setPlaybookSearch(e.target.value)}
+                  placeholder="Search Logic Apps by name, action, category, or tag..."
+                  className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-purple-500 font-sans"
+                />
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 text-[11px]">
+                {['All', 'Containment', 'Identity', 'Network', 'Notification', 'Ticketing', 'Forensics'].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setPlaybookCategory(cat)}
+                    className={`px-2.5 py-1 rounded-lg font-medium transition-all shrink-0 ${
+                      playbookCategory === cat
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30'
+                        : 'bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Playbooks Selection List */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2 max-h-[300px]">
+              {loadingPlaybooks ? (
+                <div className="p-8 text-center text-xs text-slate-400 flex flex-col items-center justify-center space-y-2">
+                  <Clock className="w-5 h-5 animate-spin text-purple-400" />
+                  <span>Loading Azure Logic Apps & Sentinel Playbooks...</span>
+                </div>
+              ) : playbooks.filter((p) => {
+                const matchesCat = playbookCategory === 'All' || (p.category || '').toLowerCase() === playbookCategory.toLowerCase();
+                const q = playbookSearch.toLowerCase().trim();
+                const matchesSearch = !q || (p.name || '').toLowerCase().includes(q) || (p.displayName || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q);
+                return matchesCat && matchesSearch;
+              }).length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  No Logic App playbooks matched your filter.
+                </div>
+              ) : (
+                playbooks
+                  .filter((p) => {
+                    const matchesCat = playbookCategory === 'All' || (p.category || '').toLowerCase() === playbookCategory.toLowerCase();
+                    const q = playbookSearch.toLowerCase().trim();
+                    const matchesSearch = !q || (p.name || '').toLowerCase().includes(q) || (p.displayName || '').toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q);
+                    return matchesCat && matchesSearch;
+                  })
+                  .map((pb) => {
+                    const isSelected = selectedPlaybookName === pb.name;
+                    return (
+                      <div
+                        key={pb.id || pb.name}
+                        onClick={() => setSelectedPlaybookName(pb.name)}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex items-start space-x-3 ${
+                          isSelected
+                            ? 'bg-purple-500/10 border-purple-500 text-slate-900 dark:text-white ring-2 ring-purple-500/40 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="pt-0.5">
+                          <input
+                            type="radio"
+                            name="selectedPlaybook"
+                            checked={isSelected}
+                            onChange={() => setSelectedPlaybookName(pb.name)}
+                            className="text-purple-600 focus:ring-purple-500 h-4 w-4"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center space-x-1.5 truncate">
+                              <span className="truncate">{pb.displayName || pb.name}</span>
+                            </div>
+                            <div className="flex items-center space-x-1.5 shrink-0">
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${getPlaybookCategoryColor(pb.category)}`}>
+                                {pb.category || 'SOAR'}
+                              </span>
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                ● {pb.state || 'Enabled'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-[11px] font-mono text-purple-700 dark:text-purple-300 mt-0.5">
+                            <code>{pb.name}</code>
+                          </div>
+
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                            {pb.description}
+                          </p>
+
+                          <div className="mt-1.5 flex items-center space-x-3 text-[10px] text-slate-400 font-mono">
+                            <span>Trigger: {pb.triggerType || 'Incident Trigger'}</span>
+                            <span>•</span>
+                            <span>RG: {pb.resourceGroup || 'sentinel-demo'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {/* Target Entities & Execution Notes */}
+            <div className="bg-slate-100 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Contextual Target Entities:</span>
+                <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-500">
+                  <span className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded">Account: {targetUser}</span>
+                  <span className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 rounded">IP: {targetIp}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Execution Notes / Tracking Reason (Recorded in Sentinel Comment Audit):
+                </label>
+                <input
+                  type="text"
+                  value={playbookNotes}
+                  onChange={(e) => setPlaybookNotes(e.target.value)}
+                  placeholder={`e.g. Triggering ${selectedPlaybookName} following AI forensic triage...`}
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:border-purple-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Execution Result Banner */}
+            {playbookResult && (
+              <div className={`p-3 rounded-xl border text-xs space-y-1 ${
+                playbookResult.status === 'SUCCESS'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                <div className="flex items-center space-x-2 font-bold">
+                  {playbookResult.status === 'SUCCESS' ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertTriangle className="w-4 h-4 text-red-500" />}
+                  <span>{playbookResult.status === 'SUCCESS' ? 'Azure Logic App Playbook Triggered' : 'Trigger Failed'}</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">{playbookResult.result_message || playbookResult.message}</p>
+                {playbookResult.run_id && (
+                  <div className="text-[10px] font-mono text-slate-400 pt-0.5">
+                    Execution Run ID: <code className="text-purple-400">{playbookResult.run_id}</code> • Synced to Microsoft Sentinel
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+              <div className="text-[11px] text-slate-500">
+                Selected: <strong className="text-purple-600 dark:text-purple-400 font-mono">{selectedPlaybookName}</strong>
+              </div>
+              <div className="flex items-center space-x-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPlaybookModal(false);
+                    setPlaybookResult(null);
+                  }}
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                >
+                  {playbookResult ? 'Close' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTriggerPlaybook}
+                  disabled={isTriggeringPlaybook || !selectedPlaybookName}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 disabled:opacity-50 transition-all flex items-center space-x-1.5"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${isTriggeringPlaybook ? 'animate-spin' : ''}`} />
+                  <span>{isTriggeringPlaybook ? 'Triggering Logic App...' : 'Trigger Selected Playbook'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

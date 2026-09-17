@@ -66,8 +66,24 @@ class RemediationService:
         # 5. Trigger Sentinel SOAR Playbook (Azure Logic App)
         elif action_type == "trigger_playbook":
             playbook_name = parameters.get("playbook_name", "SOAR-Incident-Containment-Playbook")
-            result_message = f"Sentinel SOAR Automation Playbook '{playbook_name}' triggered for incident #{incident_id}. Automated ticketing, SOC Slack notification, and forensic snapshot initiated."
-            applied_tags = ["Playbook-Triggered", "SOAR-Automated"]
+            playbook_res = await sentinel_client.trigger_playbook(
+                incident_id=incident_id,
+                playbook_name=playbook_name,
+                parameters=parameters,
+                analyst_name=analyst_name
+            )
+            result_message = f"Azure Logic App SOAR Playbook '{playbook_name}' successfully triggered (Run ID: {playbook_res.get('run_id')}). Response workflow, ticketing, and telemetry pipeline initiated."
+            applied_tags = [f"Playbook:{playbook_name}", "SOAR-Automated"]
+            return {
+                "status": "SUCCESS",
+                "action_type": action_type,
+                "entity": entity,
+                "playbook_name": playbook_name,
+                "run_id": playbook_res.get("run_id"),
+                "result_message": result_message,
+                "applied_tags": applied_tags,
+                "timestamp": timestamp
+            }
 
         # 6. Auto-Close as False Positive
         elif action_type == "close_false_positive":

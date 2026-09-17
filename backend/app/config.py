@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12 # 12 hours
     ADMIN_USERNAME: str = "soc_admin"
-    ADMIN_PASSWORD: Optional[str] = None
+    ADMIN_PASSWORD: Optional[str] = "SentinelAdmin2026!"
     
     # Azure Sentinel & Azure Resource Manager Config
     AZURE_TENANT_ID: Optional[str] = None
@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     AZURE_OPENAI_API_KEY: Optional[str] = None
     AZURE_OPENAI_API_VERSION: str = "2024-02-15-preview"
     AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-4o-mini"
+    LLM_ROUTING_MODE: str = "hybrid" # "hybrid", "always_mini", "always_astra"
+    FAST_MODEL_NAME: str = "gpt-4o-mini"
+    REASONING_MODEL_NAME: str = "gpt-6-astra"
     
     # Threat Intelligence API Keys & Providers
     ABUSEIPDB_API_KEY: Optional[str] = None

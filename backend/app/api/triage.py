@@ -135,16 +135,20 @@ async def download_triage_report(
     c2_telemetry = rca.get("network_c2_telemetry", {})
     blast_radius = rca.get("blast_radius", {})
 
+    model_used = report.get("model_used", "gpt-4o-mini")
+    reasoning_tier = str(report.get("reasoning_tier", "fast")).replace("_", " ").title()
+
     md_content = f"""# 🛡️ Microsoft Sentinel SOC Root Cause Analysis (RCA) Report
 **Incident:** #{inc_num} - {incident.get("title")}
 **Generated On:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
 **Reviewing Analyst:** {analyst_name}
 **AI Verdict:** {report.get("verdict")} ({report.get("confidence_score")}% Confidence)
 **Assessed Severity:** {report.get("severity_assessment", incident.get("severity"))}
+**AI Model Used:** {model_used} ({reasoning_tier})
 
 ---
 
-## 📋 1. Executive Summary & Root Cause
+## 📋 1. Executive Summary & Root Cause (Model: {model_used})
 {report.get("executive_summary")}
 
 ---

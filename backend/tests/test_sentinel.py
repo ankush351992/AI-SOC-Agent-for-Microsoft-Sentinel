@@ -28,3 +28,29 @@ async def test_kql_execution():
     res = await kql_runner.execute_kql(query)
     assert res["status"] == "SUCCESS"
     assert len(res["tables"]) > 0
+
+@pytest.mark.asyncio
+async def test_get_playbooks():
+    playbooks = await sentinel_client.get_playbooks()
+    assert len(playbooks) >= 8
+    names = [p["name"] for p in playbooks]
+    assert "SOAR-Isolate-Endpoint-LogicApp" in names
+    assert "SOAR-Revoke-User-Sessions-LogicApp" in names
+    assert "SOAR-Block-Malicious-IP-LogicApp" in names
+    assert "SOAR-Full-Incident-Containment-Playbook" in names
+
+@pytest.mark.asyncio
+async def test_trigger_playbook():
+    from app.services.remediation_service import remediation_service
+    res = await remediation_service.execute_remediation(
+        incident_id="inc-2026-9041",
+        action_type="trigger_playbook",
+        entity="Incident #9041",
+        analyst_name="Test Analyst",
+        parameters={"playbook_name": "SOAR-Revoke-User-Sessions-LogicApp", "notes": "Test containment"}
+    )
+    assert res["status"] == "SUCCESS"
+    assert "run_id" in res
+    assert res["playbook_name"] == "SOAR-Revoke-User-Sessions-LogicApp"
+    assert "Playbook:SOAR-Revoke-User-Sessions-LogicApp" in res["applied_tags"]
+    assert "SOAR-Automated" in res["applied_tags"]

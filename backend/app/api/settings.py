@@ -26,6 +26,9 @@ class SettingsUpdateRequest(BaseModel):
     azure_openai_api_key: Optional[str] = None
     azure_openai_deployment_name: Optional[str] = None
     openai_api_key: Optional[str] = None
+    llm_routing_mode: Optional[str] = None # "hybrid", "always_mini", "always_astra"
+    fast_model_name: Optional[str] = None
+    reasoning_model_name: Optional[str] = None
     
     # Third-party & Microsoft Threat Intel Keys
     abuseipdb_api_key: Optional[str] = None
@@ -80,8 +83,11 @@ async def get_system_status(current_user: User = Depends(get_current_user)):
             "provider": settings.LLM_PROVIDER,
             "configured": llm_configured,
             "endpoint": mask_key(settings.AZURE_OPENAI_ENDPOINT),
-            "deployment": settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o",
-            "status": "ONLINE (AZURE OPENAI / REASONING ENGINE)"
+            "deployment": settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else settings.FAST_MODEL_NAME,
+            "routing_mode": getattr(settings, "LLM_ROUTING_MODE", "hybrid"),
+            "fast_model": getattr(settings, "FAST_MODEL_NAME", "gpt-4o-mini"),
+            "reasoning_model": getattr(settings, "REASONING_MODEL_NAME", "gpt-6-astra"),
+            "status": "ONLINE (HYBRID AI ROUTING)" if getattr(settings, "LLM_ROUTING_MODE", "hybrid") == "hybrid" else f"ONLINE ({getattr(settings, 'LLM_ROUTING_MODE', 'hybrid').upper()})"
         },
         "threat_intelligence": {
             "abuseipdb_configured": bool(settings.ABUSEIPDB_API_KEY),
@@ -135,6 +141,12 @@ async def update_system_settings(req: SettingsUpdateRequest, current_user: User 
         settings.AZURE_OPENAI_DEPLOYMENT_NAME = req.azure_openai_deployment_name
     if req.openai_api_key is not None and req.openai_api_key.strip() != "":
         settings.OPENAI_API_KEY = req.openai_api_key
+    if req.llm_routing_mode is not None:
+        settings.LLM_ROUTING_MODE = req.llm_routing_mode
+    if req.fast_model_name is not None and req.fast_model_name.strip() != "":
+        settings.FAST_MODEL_NAME = req.fast_model_name
+    if req.reasoning_model_name is not None and req.reasoning_model_name.strip() != "":
+        settings.REASONING_MODEL_NAME = req.reasoning_model_name
 
     # Threat Intel Keys
     if req.abuseipdb_api_key is not None and req.abuseipdb_api_key.strip() != "":
@@ -176,6 +188,9 @@ async def update_system_settings(req: SettingsUpdateRequest, current_user: User 
             f"AZURE_OPENAI_API_KEY={settings.AZURE_OPENAI_API_KEY or ''}",
             f"AZURE_OPENAI_DEPLOYMENT_NAME={settings.AZURE_OPENAI_DEPLOYMENT_NAME or 'gpt-4o'}",
             f"OPENAI_API_KEY={settings.OPENAI_API_KEY or ''}",
+            f"LLM_ROUTING_MODE={getattr(settings, 'LLM_ROUTING_MODE', 'hybrid')}",
+            f"FAST_MODEL_NAME={getattr(settings, 'FAST_MODEL_NAME', 'gpt-4o-mini')}",
+            f"REASONING_MODEL_NAME={getattr(settings, 'REASONING_MODEL_NAME', 'gpt-6-astra')}",
             f"ENABLE_MICROSOFT_THREAT_INTEL={str(settings.ENABLE_MICROSOFT_THREAT_INTEL)}",
             f"MDTI_API_KEY={settings.MDTI_API_KEY or ''}",
             f"ABUSEIPDB_API_KEY={settings.ABUSEIPDB_API_KEY or ''}",

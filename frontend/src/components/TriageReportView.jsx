@@ -149,9 +149,9 @@ export default function TriageReportView({ report: initialReport, incident, onRe
     return `# 🛡️ Sentinel AI SOC - Root Cause Analysis (RCA) & Triage Report
 Incident: #${incident?.incidentNumber || 'N/A'} - ${incident?.title || 'Security Incident'}
 Incident Created: ${formatDateTime(incident?.createdTimeUtc, tz, 'medium')}
-Report Generated: ${formatDateTime(new Date().toISOString(), tz, 'medium')}
 AI Verdict: ${report.verdict} (${report.confidence_score}% Confidence)
 Assessed Severity: ${report.severity_assessment || incident?.severity || 'Medium'}
+AI Model Used: ${report.model_used || 'gpt-4o-mini'} (${(report.reasoning_tier || 'fast').replace('_', ' ')})
 
 ---
 ### 1. Executive Summary & Root Cause:
@@ -282,7 +282,7 @@ ${actionList}
     @page { size: A4; margin: 15mm; }
     body { font-family: 'Inter', -apple-system, sans-serif; color: #0F172A; background: #FFF; margin: 0; padding: 20px; font-size: 11px; line-height: 1.5; -webkit-print-color-adjust: exact !important; }
     .header-table { width: 100%; border-bottom: 2px solid #0F172A; padding-bottom: 10px; margin-bottom: 14px; }
-    .report-meta-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .report-meta-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .meta-label { font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748B; }
     .meta-val { font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
     .verdict-card { border: 2px solid ${verdictMeta.color}; background: #F8FAFC; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -319,6 +319,7 @@ ${actionList}
     <div><div class="meta-label">Incident ID</div><div class="meta-val">#${incident?.incidentNumber || 'N/A'}</div></div>
     <div><div class="meta-label">Detection Time (${getTimezoneShortLabel(tz)})</div><div class="meta-val">${formatDateTime(incident?.createdTimeUtc, tz, 'short')}</div></div>
     <div><div class="meta-label">Assessed Severity</div><div class="meta-val" style="color:${verdictMeta.color}; font-weight:bold;">${report.severity_assessment || incident?.severity || 'Medium'}</div></div>
+    <div><div class="meta-label">AI Triage Model</div><div class="meta-val" style="color:#2563EB;">${report.model_used || 'gpt-4o-mini'}</div></div>
     <div><div class="meta-label">Reviewing Analyst</div><div class="meta-val">${analystName}</div></div>
   </div>
 
@@ -332,7 +333,7 @@ ${actionList}
     </div>
   </div>
 
-  <div class="section-title">1. Executive Summary & Root Cause Assessment</div>
+  <div class="section-title">1. Executive Summary & Root Cause Assessment <span style="float:right; font-size:9px; font-weight:600; text-transform:none; color:#64748B;">Model: ${report.model_used || 'gpt-4o-mini'}</span></div>
   <div class="summary-box">${report.executive_summary}</div>
 
   <div class="section-title">2. Patient Zero & Initial Attack Vector</div>
@@ -432,7 +433,7 @@ ${actionList}
             <div className="text-xs uppercase font-mono font-bold tracking-wider opacity-80">
               AI Triage & Forensic RCA
             </div>
-            <div className="text-lg font-bold text-slate-900 dark:text-white">{verdictMeta.label}</div>
+            <div className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">{verdictMeta.label}</div>
           </div>
         </div>
 
@@ -609,10 +610,21 @@ ${actionList}
           <>
             {/* Executive Summary */}
             <div className="bg-slate-100 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-lg p-4">
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-                <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span>1. Executive Summary & Root Cause Assessment</span>
-              </h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>1. Executive Summary & Root Cause Assessment</span>
+                </h4>
+                {report.model_used && (
+                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 shadow-xs">
+                    <span className="opacity-70">Model:</span>
+                    <span className="font-bold">{report.model_used}</span>
+                    {report.reasoning_tier && (
+                      <span className="opacity-60 text-[9px]">({report.reasoning_tier.replace('_', ' ')})</span>
+                    )}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">{report.executive_summary}</p>
             </div>
 

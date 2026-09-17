@@ -83,12 +83,15 @@ export default function SettingsPage({ user }) {
     abuseipdb_api_key: '',
     virustotal_api_key: '',
 
-    // LLM Keys
+    // LLM Keys & Routing Policy
     llm_provider: 'azure_openai',
     azure_openai_endpoint: '',
     azure_openai_api_key: '',
     azure_openai_deployment_name: 'gpt-4o',
     openai_api_key: '',
+    llm_routing_mode: 'hybrid',
+    fast_model_name: 'gpt-4o-mini',
+    reasoning_model_name: 'gpt-6-astra',
 
     // Toggles
     demo_mode: true,
@@ -121,6 +124,9 @@ export default function SettingsPage({ user }) {
         azure_openai_api_key: '',
         azure_openai_deployment_name: data.llm_engine?.deployment || 'gpt-4o',
         openai_api_key: '',
+        llm_routing_mode: data.llm_engine?.routing_mode || 'hybrid',
+        fast_model_name: data.llm_engine?.fast_model || 'gpt-4o-mini',
+        reasoning_model_name: data.llm_engine?.reasoning_model || 'gpt-6-astra',
 
         demo_mode: data.demo_mode ?? true,
         auto_post_comments: data.auto_triage?.auto_post_comments ?? true,
@@ -451,7 +457,7 @@ export default function SettingsPage({ user }) {
           </div>
         </div>
 
-        {/* Section 3: AI Reasoning Engine (Azure OpenAI / Standard OpenAI) */}
+        {/* Section 3: AI Reasoning Engine & Intelligent Hybrid Model Segregation */}
         <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-lg space-y-4 transition-colors duration-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2.5">
@@ -459,16 +465,16 @@ export default function SettingsPage({ user }) {
                 <Cpu className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">AI Reasoning Engine (Azure OpenAI)</h3>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Autonomous RCA & Sentinel copilot reasoning</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">AI Engine & Model Routing Policy</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Intelligent model segregation between Fast & Reasoning tiers</p>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-semibold">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 font-semibold">
               {status?.llm_engine?.status}
             </span>
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="space-y-3.5 text-xs">
             <div>
               <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
                 LLM Provider Engine
@@ -477,12 +483,121 @@ export default function SettingsPage({ user }) {
                 disabled={!isAdmin}
                 value={formData.llm_provider}
                 onChange={(e) => setFormData({ ...formData, llm_provider: e.target.value })}
-                className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 disabled:opacity-50"
+                className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 disabled:opacity-50 font-medium"
               >
                 <option value="azure_openai">Azure OpenAI Service (Private Corporate Deployment)</option>
                 <option value="openai">Direct OpenAI API (Standard API Key)</option>
-                <option value="simulation">Deterministic Simulation (Offline Heuristic)</option>
+                <option value="simulation">Deterministic Simulation (Offline SOC Heuristic)</option>
               </select>
+            </div>
+
+            {/* Model Segregation & Routing Policy */}
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1.5 flex items-center justify-between">
+                <span>Model Segregation & Routing Strategy</span>
+                <span className="text-[10px] font-mono text-indigo-500 font-bold uppercase">
+                  {formData.llm_routing_mode === 'hybrid' ? '⚡ Hybrid Active' : formData.llm_routing_mode === 'always_astra' ? '🧠 Astra Only' : '⚡ 4o-mini Only'}
+                </span>
+              </label>
+              <div className="grid grid-cols-1 gap-2">
+                <label className={`flex items-start space-x-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  formData.llm_routing_mode === 'hybrid'
+                    ? 'border-indigo-500/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-200'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="routing_mode"
+                    value="hybrid"
+                    disabled={!isAdmin}
+                    checked={formData.llm_routing_mode === 'hybrid'}
+                    onChange={() => setFormData({ ...formData, llm_routing_mode: 'hybrid' })}
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-bold flex items-center space-x-1.5">
+                      <span>⚡ Intelligent Hybrid Routing (Recommended)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Auto-routes ~80% routine & low-severity alerts to <code className="text-indigo-600 dark:text-indigo-400 font-bold">gpt-4o-mini</code> (fast & low-cost), and escalates ~20% complex multi-stage attacks to <code className="text-purple-600 dark:text-purple-400 font-bold">gpt-6-astra</code> (deep forensic reasoning).
+                    </p>
+                  </div>
+                </label>
+
+                <label className={`flex items-start space-x-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  formData.llm_routing_mode === 'always_mini'
+                    ? 'border-indigo-500/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-200'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="routing_mode"
+                    value="always_mini"
+                    disabled={!isAdmin}
+                    checked={formData.llm_routing_mode === 'always_mini'}
+                    onChange={() => setFormData({ ...formData, llm_routing_mode: 'always_mini' })}
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-bold">⚡ Always Fast (gpt-4o-mini)</div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Forces all triage through low-latency model for maximum cost savings and sub-second execution.
+                    </p>
+                  </div>
+                </label>
+
+                <label className={`flex items-start space-x-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  formData.llm_routing_mode === 'always_astra'
+                    ? 'border-indigo-500/60 bg-indigo-50/50 dark:bg-indigo-950/30 text-indigo-950 dark:text-indigo-200'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="routing_mode"
+                    value="always_astra"
+                    disabled={!isAdmin}
+                    checked={formData.llm_routing_mode === 'always_astra'}
+                    onChange={() => setFormData({ ...formData, llm_routing_mode: 'always_astra' })}
+                    className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-bold">🧠 Always Deep Reasoning (gpt-6-astra)</div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Forces exhaustive multi-step reasoning and root-cause analysis for every incident.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Fast Tier Model Identifier
+                </label>
+                <input
+                  type="text"
+                  disabled={!isAdmin}
+                  value={formData.fast_model_name}
+                  onChange={(e) => setFormData({ ...formData, fast_model_name: e.target.value })}
+                  placeholder="e.g. gpt-4o-mini"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Reasoning Tier Model Identifier
+                </label>
+                <input
+                  type="text"
+                  disabled={!isAdmin}
+                  value={formData.reasoning_model_name}
+                  onChange={(e) => setFormData({ ...formData, reasoning_model_name: e.target.value })}
+                  placeholder="e.g. gpt-6-astra"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                />
+              </div>
             </div>
 
             {formData.llm_provider === 'azure_openai' && (
@@ -501,35 +616,19 @@ export default function SettingsPage({ user }) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                      Azure OpenAI API Key
-                    </label>
-                    <div className="relative">
-                      <Key className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="password"
-                        disabled={!isAdmin}
-                        value={formData.azure_openai_api_key}
-                        onChange={(e) => setFormData({ ...formData, azure_openai_api_key: e.target.value })}
-                        placeholder={isAdmin ? "••••••••••••••••" : "Managed by Admin"}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                      Model Deployment Name
-                    </label>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Azure OpenAI API Key
+                  </label>
+                  <div className="relative">
+                    <Key className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                     <input
-                      type="text"
+                      type="password"
                       disabled={!isAdmin}
-                      value={formData.azure_openai_deployment_name}
-                      onChange={(e) => setFormData({ ...formData, azure_openai_deployment_name: e.target.value })}
-                      placeholder="e.g. gpt-4o"
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                      value={formData.azure_openai_api_key}
+                      onChange={(e) => setFormData({ ...formData, azure_openai_api_key: e.target.value })}
+                      placeholder={isAdmin ? "••••••••••••••••" : "Managed by Admin"}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-500 disabled:opacity-50"
                     />
                   </div>
                 </div>

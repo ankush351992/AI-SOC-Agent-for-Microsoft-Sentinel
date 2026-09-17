@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Terminal, Shield, CheckCircle, Database, Search, Cpu, AlertTriangle } from 'lucide-react';
+import { Terminal, Shield, CheckCircle, Database, Search, Cpu, AlertTriangle, Sparkles, Zap, Brain } from 'lucide-react';
 
 export default function LiveInvestigationStream({ events, isRunning }) {
   const terminalEndRef = useRef(null);
@@ -12,6 +12,8 @@ export default function LiveInvestigationStream({ events, isRunning }) {
     switch (type) {
       case 'INVESTIGATION_STARTED':
         return <Shield className="w-3.5 h-3.5 text-blue-400" />;
+      case 'MODEL_SELECTED':
+        return <Sparkles className="w-3.5 h-3.5 text-indigo-400" />;
       case 'ENTITIES_EXTRACTED':
         return <Cpu className="w-3.5 h-3.5 text-purple-400" />;
       case 'THREAT_INTEL_CHECK':
@@ -82,6 +84,16 @@ export default function LiveInvestigationStream({ events, isRunning }) {
               {/* Collapsible Details / Payload */}
               {evt.details && Object.keys(evt.details).length > 0 && (
                 <div className="mt-2 bg-slate-950/90 border border-slate-800/80 rounded p-2.5 text-[11px] text-slate-400 overflow-x-auto">
+                  {evt.details.model_name && (
+                    <div className="flex items-center space-x-2 text-indigo-300 mb-1">
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-bold font-mono">
+                        {evt.details.model_name.includes('astra') ? '🧠' : '⚡'} {evt.details.model_name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        [{evt.details.reasoning_tier}]
+                      </span>
+                    </div>
+                  )}
                   {evt.details.query && (
                     <div className="text-cyan-400 mb-1">
                       <span className="text-slate-500">KQL: </span>

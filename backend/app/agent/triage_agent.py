@@ -31,6 +31,113 @@ class SentinelTriageAgent:
         except Exception as e:
             logger.warning(f"Could not initialize OpenAI client (using built-in reasoning engine): {e}")
 
+    def select_triage_model(self, incident: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Dynamically selects the optimal LLM model tier based on incident characteristics
+        and the configured routing policy (Hybrid, Always Mini, or Always Astra).
+        - Low / Informational severity alerts route to gpt-4o-mini (Fast Triage, ~80% volume)
+        - High / Critical severity alerts, multi-alert campaigns, or multi-stage attacks route to gpt-6-astra (Deep Reasoning, ~20% volume)
+        """
+        import re
+        mode = getattr(settings, "LLM_ROUTING_MODE", "hybrid")
+        fast_model = getattr(settings, "FAST_MODEL_NAME", "gpt-4o-mini")
+        reasoning_model = getattr(settings, "REASONING_MODEL_NAME", "gpt-6-astra")
+
+        if mode == "always_mini":
+            return {
+                "model_name": fast_model,
+                "reasoning_tier": "fast",
+                "reason": "Routing mode set to Always Fast (gpt-4o-mini)"
+            }
+
+        if mode == "always_astra":
+            return {
+                "model_name": reasoning_model,
+                "reasoning_tier": "deep_reasoning",
+                "reason": "Routing mode set to Always Reasoning (gpt-6-astra)"
+            }
+
+        # Hybrid Mode: Intelligent segregation
+        severity = str(incident.get("severity", "Medium")).strip().lower()
+        title = incident.get("title", "")
+        desc = incident.get("description", "")
+        text_corpus = f"{title} {desc}".lower()
+
+        tactics = incident.get("tactics", []) or []
+        alerts = incident.get("alerts", []) or incident.get("relatedAlerts", []) or []
+        alerts_count = incident.get("alertsCount") or incident.get("alerts_count") or len(alerts) or 1
+
+        # Condition 1: Low and Informational severity alerts ALWAYS route to Fast Triage (gpt-4o-mini)
+        if severity in ["low", "informational"]:
+            return {
+                "model_name": fast_model,
+                "reasoning_tier": "fast",
+                "reason": f"Low Severity incident ({severity.capitalize()}) routed to Fast Triage (gpt-4o-mini)"
+            }
+
+        # Condition 2: High / Critical Severity alerts ALWAYS route to Deep Forensic Reasoning (gpt-6-astra)
+        if severity in ["high", "critical"]:
+            return {
+                "model_name": reasoning_model,
+                "reasoning_tier": "deep_reasoning",
+                "reason": f"High/Critical Severity incident ({severity.capitalize()}) triggers Deep Forensic Reasoning"
+            }
+
+        # Condition 3: For Medium Severity incidents, evaluate multi-alert correlation and multi-stage tactics
+        if alerts_count >= 2:
+            return {
+                "model_name": reasoning_model,
+                "reasoning_tier": "deep_reasoning",
+                "reason": f"Correlated Multi-Alert Campaign ({alerts_count} alerts) triggers Deep Forensic Reasoning"
+            }
+
+        if len(tactics) >= 2:
+            return {
+                "model_name": reasoning_model,
+                "reasoning_tier": "deep_reasoning",
+                "reason": f"Multi-Stage Attack Lifecycle ({len(tactics)} MITRE tactics) triggers Deep Forensic Reasoning"
+            }
+
+        # Condition 4: Complex threat vectors / APT keywords (with strict word boundaries to prevent substring collisions)
+        apt_patterns = [
+            r"\bpowershell\b",
+            r"\bencoded\b",
+            r"\bransomware\b",
+            r"\bransom\b",
+            r"\btor exit\b",
+            r"\btor proxy\b",
+            r"\btor network\b",
+            r"\bc2\b",
+            r"\bbeacon(?:ing)?\b",
+            r"\blateral movement\b",
+            r"\bprivilege escalation\b",
+            r"\bcredential dump(?:ing)?\b",
+            r"\bmimikatz\b",
+            r"\bpass the hash\b",
+            r"\bservice principal\b",
+            r"\bexfiltration\b",
+            r"\btrojan\b",
+            r"\bcobalt strike\b",
+            r"\bzero-?day\b",
+            r"\bexploit kit\b"
+        ]
+        for pattern in apt_patterns:
+            match = re.search(pattern, text_corpus, re.IGNORECASE)
+            if match:
+                matched_kw = match.group(0)
+                return {
+                    "model_name": reasoning_model,
+                    "reasoning_tier": "deep_reasoning",
+                    "reason": f"Complex Threat Indicator ('{matched_kw}') triggers Deep Forensic Reasoning"
+                }
+
+        # Default routine triage: fast low-latency model
+        return {
+            "model_name": fast_model,
+            "reasoning_tier": "fast",
+            "reason": "Standard routine alert categorized for low-latency Fast Triage (gpt-4o-mini)"
+        }
+
     async def triage_incident(
         self,
         incident: Dict[str, Any],
@@ -64,7 +171,25 @@ class SentinelTriageAgent:
                     })
 
         await notify("INVESTIGATION_STARTED", f"Starting automated AI triage for Incident #{incident.get('incidentNumber', '')}: '{title}'")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.4)
+
+        # Dynamic AI Model Selection & Segregation
+        routing_info = self.select_triage_model(incident)
+        selected_model = routing_info["model_name"]
+        reasoning_tier = routing_info["reasoning_tier"]
+        routing_reason = routing_info["reason"]
+
+        await notify(
+            "MODEL_SELECTED",
+            f"Model Tier Selected: {selected_model} ({reasoning_tier.replace('_', ' ').title()}) — {routing_reason}",
+            {
+                "model_name": selected_model,
+                "reasoning_tier": reasoning_tier,
+                "routing_reason": routing_reason,
+                "routing_mode": getattr(settings, "LLM_ROUTING_MODE", "hybrid")
+            }
+        )
+        await asyncio.sleep(0.4)
 
         # Step 1: Entity Extraction & Context Assessment
         extracted_ips = [e.get("address") for e in entities if e.get("kind") == "Ip" and e.get("address")]
@@ -126,7 +251,10 @@ class SentinelTriageAgent:
         # Check if live OpenAI model is configured and active
         if self.openai_client and not settings.DEMO_MODE:
             try:
-                model_name = settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o-mini"
+                model_to_use = selected_model
+                if settings.LLM_PROVIDER == "azure_openai" and settings.AZURE_OPENAI_DEPLOYMENT_NAME and settings.AZURE_OPENAI_DEPLOYMENT_NAME not in ["gpt-4o-mini", "gpt-4o", "gpt-6-astra"]:
+                    model_to_use = settings.AZURE_OPENAI_DEPLOYMENT_NAME
+
                 prompt_messages = [
                     {"role": "system", "content": SOC_TRIAGE_SYSTEM_PROMPT},
                     {
@@ -134,14 +262,15 @@ class SentinelTriageAgent:
                         "content": json.dumps({
                             "incident": incident,
                             "threat_intel": ti_results,
-                            "kql_findings": kql_findings
+                            "kql_findings": kql_findings,
+                            "model_tier": reasoning_tier
                         })
                     }
                 ]
                 
                 try:
                     response = self.openai_client.chat.completions.create(
-                        model=model_name,
+                        model=model_to_use,
                         messages=prompt_messages,
                         response_format={"type": "json_object"},
                         max_completion_tokens=2500
@@ -149,7 +278,7 @@ class SentinelTriageAgent:
                 except Exception as param_err:
                     if "max_completion_tokens" in str(param_err).lower() or "unsupported" in str(param_err).lower():
                         response = self.openai_client.chat.completions.create(
-                            model=model_name,
+                            model=model_to_use,
                             messages=prompt_messages,
                             response_format={"type": "json_object"},
                             max_tokens=2500,
@@ -159,11 +288,15 @@ class SentinelTriageAgent:
                         raise param_err
 
                 verdict_json = json.loads(response.choices[0].message.content)
+                verdict_json["model_used"] = selected_model
+                verdict_json["reasoning_tier"] = reasoning_tier
+                verdict_json["routing_reason"] = routing_reason
+
                 await notify("VERDICT_GENERATED", f"AI Triage completed with verdict: {verdict_json.get('verdict')}", verdict_json)
                 
                 # Auto-post comment to Sentinel if enabled
                 if settings.AUTO_POST_COMMENTS_TO_SENTINEL:
-                    comment_summary = f"### 🤖 AI Triage Investigation Report\n**Verdict:** {verdict_json.get('verdict')} (Confidence: {verdict_json.get('confidence_score')}%)\n**Summary:** {verdict_json.get('executive_summary')}\n**Actions:** {', '.join(verdict_json.get('recommended_actions', []))}"
+                    comment_summary = f"### 🤖 AI Triage Investigation Report\n**Model Tier:** `{selected_model}` ({reasoning_tier.title()})\n**Verdict:** {verdict_json.get('verdict')} (Confidence: {verdict_json.get('confidence_score')}%)\n**Summary:** {verdict_json.get('executive_summary')}\n**Actions:** {', '.join(verdict_json.get('recommended_actions', []))}"
                     await sentinel_client.add_comment(incident_id, comment_summary)
                     await notify("SENTINEL_UPDATED", "Triage report automatically posted as comment to Microsoft Sentinel incident.")
                 
@@ -381,6 +514,9 @@ class SentinelTriageAgent:
             "verdict": verdict,
             "confidence_score": confidence,
             "severity_assessment": severity,
+            "model_used": selected_model,
+            "reasoning_tier": reasoning_tier,
+            "routing_reason": routing_reason,
             "mitre_attack": {
                 "tactics": mitre_tactics,
                 "techniques": mitre_techniques
@@ -395,11 +531,11 @@ class SentinelTriageAgent:
             "tags_to_apply": tags
         }
 
-        await notify("VERDICT_GENERATED", f"AI Triage completed: {verdict} ({confidence}% confidence)", final_report)
+        await notify("VERDICT_GENERATED", f"AI Triage completed: {verdict} ({confidence}% confidence) via {selected_model}", final_report)
 
         # Auto-post to Sentinel
         if settings.AUTO_POST_COMMENTS_TO_SENTINEL:
-            comment_md = f"### 🤖 AI Sentinel Triage Report\n**Verdict:** `{verdict}` | **Confidence:** `{confidence}%`\n\n**Executive Summary:**\n{summary}\n\n**Key Findings:**\n" + "\n".join([f"- {f}" for f in evidence]) + "\n\n**Recommended Actions:**\n" + "\n".join([f"- {a}" for a in recommendations])
+            comment_md = f"### 🤖 AI Sentinel Triage Report\n**Model Tier:** `{selected_model}` ({reasoning_tier.title()})\n**Verdict:** `{verdict}` | **Confidence:** `{confidence}%`\n\n**Executive Summary:**\n{summary}\n\n**Key Findings:**\n" + "\n".join([f"- {f}" for f in evidence]) + "\n\n**Recommended Actions:**\n" + "\n".join([f"- {a}" for a in recommendations])
             await sentinel_client.add_comment(incident_id, comment_md)
             await notify("SENTINEL_UPDATED", "Triage summary posted as comment into Microsoft Sentinel incident.")
 
@@ -414,7 +550,15 @@ class SentinelTriageAgent:
         """Interactive Q&A with the SOC Analyst regarding the incident"""
         if self.openai_client:
             try:
-                model_name = settings.AZURE_OPENAI_DEPLOYMENT_NAME if settings.LLM_PROVIDER == "azure_openai" else "gpt-4o"
+                routing_decision = self.select_triage_model(incident)
+                chat_model = routing_decision["model_name"]
+
+                if any(kw in user_message.lower() for kw in ["forensic", "rca", "deep", "analyze", "kill chain", "root cause", "reverse"]):
+                    chat_model = getattr(settings, "REASONING_MODEL_NAME", "gpt-6-astra")
+
+                if settings.LLM_PROVIDER == "azure_openai" and settings.AZURE_OPENAI_DEPLOYMENT_NAME and settings.AZURE_OPENAI_DEPLOYMENT_NAME not in ["gpt-4o-mini", "gpt-4o", "gpt-6-astra"]:
+                    chat_model = settings.AZURE_OPENAI_DEPLOYMENT_NAME
+
                 messages = [
                     {"role": "system", "content": SOC_CHAT_SYSTEM_PROMPT + f"\nIncident Context:\n{json.dumps(incident)}"}
                 ]
@@ -424,14 +568,14 @@ class SentinelTriageAgent:
 
                 try:
                     response = self.openai_client.chat.completions.create(
-                        model=model_name,
+                        model=chat_model,
                         messages=messages,
                         max_completion_tokens=2000
                     )
                 except Exception as param_err:
                     if "max_completion_tokens" in str(param_err).lower() or "unsupported" in str(param_err).lower():
                         response = self.openai_client.chat.completions.create(
-                            model=model_name,
+                            model=chat_model,
                             messages=messages,
                             max_tokens=2000,
                             temperature=0.2

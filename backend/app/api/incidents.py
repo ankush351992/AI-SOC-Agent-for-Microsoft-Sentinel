@@ -71,6 +71,18 @@ async def get_incident_stats(
         "timeline_label": timeline_text
     }
 
+@router.get("/playbooks")
+async def list_sentinel_playbooks(current_user: User = Depends(get_current_user)):
+    """Retrieve list of available Azure Logic Apps (Sentinel SOAR Playbooks)"""
+    playbooks = await sentinel_client.get_playbooks()
+    return {"playbooks": playbooks, "count": len(playbooks)}
+
+@router.get("/users/entra")
+async def get_entra_users(current_user: User = Depends(get_current_user)):
+    """Retrieve list of SOC Engineers and tenant users from Microsoft Entra ID (Azure AD)"""
+    users = await sentinel_client.get_entra_users()
+    return {"users": users, "count": len(users)}
+
 @router.get("/{incident_id}")
 async def get_incident(incident_id: str, current_user: User = Depends(get_current_user)):
     """Retrieve specific Sentinel incident with full entity metadata and comments"""
@@ -147,12 +159,6 @@ class AssignRequest(BaseModel):
     user_name: Optional[str] = None
     user_email: Optional[str] = None
     user_upn: Optional[str] = None
-
-@router.get("/users/entra")
-async def get_entra_users(current_user: User = Depends(get_current_user)):
-    """Retrieve list of SOC Engineers and tenant users from Microsoft Entra ID (Azure AD)"""
-    users = await sentinel_client.get_entra_users()
-    return {"users": users, "count": len(users)}
 
 @router.patch("/{incident_id}/assign")
 async def assign_incident_owner(
