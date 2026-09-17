@@ -9,8 +9,7 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Microsoft Sentinel](https://img.shields.io/badge/SIEM-Microsoft%20Sentinel-0078D4.svg?logo=microsoft-azure&logoColor=white)](https://azure.microsoft.com/en-us/products/microsoft-sentinel)
 [![Defender XDR](https://img.shields.io/badge/XDR-Microsoft%20Defender-00A4EF.svg?logo=windows&logoColor=white)](https://www.microsoft.com/en-us/security/business/threat-protection/endpoint-defender)
-[![Vulnerabilities](https://img.shields.io/badge/Grype%20Vulnerability%20Audit-0%20CVEs-brightgreen.svg?logo=security&logoColor=white)](SBOM.md)
-[![SBOM: CycloneDX v1.5](https://img.shields.io/badge/SBOM-CycloneDX%20v1.5-blueviolet.svg)](SBOM.md)
+[![Tests: 15 Passing](https://img.shields.io/badge/Tests-15%20Passing-brightgreen.svg?logo=pytest&logoColor=white)](#-testing--verification)
 [![Docker](https://img.shields.io/badge/Container-Docker%20Compose-2496ED.svg?logo=docker&logoColor=white)](docker-compose.yml)
 [![Kubernetes](https://img.shields.io/badge/Orchestration-Azure%20AKS-326CE5.svg?logo=kubernetes&logoColor=white)](aks/)
 
@@ -283,7 +282,7 @@ flowchart TD
   - Mandatory Close & Classify modal with dynamic reasons and closing audit notes.
 - **Production AKS & Cloud Ready**:
   - Includes enterprise Kubernetes manifests (`aks/`) with non-root security context.
-  - **CycloneDX v1.5 SBOM & 0 CVEs Verified**: Complete Software Bill of Materials provided in [`SBOM.md`](SBOM.md) and [`sbom-cyclonedx.json`](sbom-cyclonedx.json) (audited clean via Grype vulnerability scanning).
+  - Multi-stage container architecture with security-hardened Alpine/Debian base and automated deployment scripts.
 
 ---
 
