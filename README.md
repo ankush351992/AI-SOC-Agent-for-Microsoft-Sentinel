@@ -230,33 +230,85 @@ echo "✅ Service Principal configured successfully! Copy App ID, Secret, and Te
 
 ```mermaid
 flowchart TD
-    subgraph Azure_Cloud [Azure Cloud & Sentinel]
-        Sentinel[Microsoft Sentinel Workspace]
-        LogAnalytics[Log Analytics Workspace / KQL]
-        EntraID[Microsoft Entra ID / Graph API]
-        LogicApps[Azure Logic Apps / SOAR Playbooks]
-        AzureOpenAI[Azure OpenAI gpt-4o-mini & gpt-6-astra]
+    subgraph Client_Layer ["🖥️ Presentation Layer (React 18 + Vite + Tailwind CSS)"]
+        UI_Dash["Incident Queue & Live Metrics"]
+        UI_Stream["Live Investigation Stream (WebSockets)"]
+        UI_KQL["Interactive KQL Generator & Live Runner"]
+        UI_Playbook["Azure Logic Apps / SOAR Playbook Selector"]
+        UI_Assign["Entra ID SOC Engineer Assignment"]
+        UI_Close["NIST Incident Closure & Classification Modal"]
+        UI_Report["Executive Briefing Viewer & PDF/MD Exporter"]
     end
 
-    subgraph App_Platform [Sentinel AI SOC Platform]
-        UI[React 18 + Tailwind SOC UI]
-        API[FastAPI Backend + JWT Auth]
-        Agent[Autonomous ReAct Triage Agent]
-        KQL[KQL Execution Service]
-        TI[Threat Intel Service]
-        Remediation[Remediation & SOAR Service]
+    subgraph API_Layer ["⚡ Application & Security Gateway (FastAPI + Python 3.11)"]
+        Auth["Zero-Trust Auth & Ephemeral Credential Engine"]
+        IncidentsAPI["/api/incidents (ARM Sync, Comments, Tags)"]
+        TriageAPI["/api/triage (Live Stream, RCA Synthesis, Chat)"]
+        KQL_API["/api/triage/kql/run (KQL Execution)"]
+        SettingsAPI["/api/settings (Model Routing & Telemetry)"]
+        ReportGen["Executive Report Generator (PDF / MD / JSON + Hash)"]
     end
 
-    Analyst[SOC Analyst Browser] -->|HTTPS / JWT| UI
-    UI <-->|REST & WebSockets| API
-    API --> Agent
-    Agent --> KQL --> LogAnalytics
-    Agent --> Sentinel
-    Agent --> AzureOpenAI
-    Agent --> TI --> ExternalTI[AbuseIPDB / VirusTotal / MDTI]
-    Agent --> Remediation --> LogicApps
-    Agent --> Remediation --> EntraID
+    subgraph AI_Core ["🧠 Autonomous Cognitive Reasoning Engine (ReAct Loop)"]
+        Agent["SentinelTriageAgent (ReAct Decision Loop)"]
+        Router{"Hybrid Model Router (Heuristic Engine)"}
+        FastTier["Fast Triage Tier (gpt-4o-mini ~80% volume)"]
+        DeepTier["Deep Forensic Tier (gpt-6-astra ~20% volume)"]
+        Tools["Agent Tools: Entity Extractor • Threat Intel • KQL Runner"]
+    end
+
+    subgraph Azure_Ecosystem ["☁️ Microsoft Azure & External Intelligence Ecosystem"]
+        Sentinel["Microsoft Sentinel (ARM REST API)"]
+        LogAnalytics["Azure Log Analytics (LogsQueryClient / KQL)"]
+        EntraID["Microsoft Entra ID (Microsoft Graph API)"]
+        LogicApps["Azure Logic Apps (8 Enterprise SOAR Workflows)"]
+        ThreatIntel["Threat Intelligence (AbuseIPDB • VirusTotal • MDTI)"]
+    end
+
+    %% Client to API
+    Client_Layer <-->|HTTPS REST & WebSockets| API_Layer
+    Auth --- IncidentsAPI
+    Auth --- TriageAPI
+
+    %% API to AI Core & Services
+    TriageAPI --> Agent
+    IncidentsAPI --> ReportGen
+    Agent --> Router
+    Router -->|Routine Alerts| FastTier
+    Router -->|High Severity / Multi-Stage / APT| DeepTier
+    Agent --> Tools
+
+    %% Integrations
+    Tools -->|Query Telemetry| LogAnalytics
+    Tools -->|Reputation Check| ThreatIntel
+    IncidentsAPI -->|Fetch / Update / Comment| Sentinel
+    IncidentsAPI -->|Query Engineers / Revoke Tokens| EntraID
+    IncidentsAPI -->|Trigger Automated Containment| LogicApps
 ```
+
+### Architectural Subsystems
+
+1. **🖥️ Presentation Layer (React 18 + Vite SPA):**
+   - High-throughput SOC triage dashboard with live filtering by status, severity, and timeframe.
+   - Real-time WebSocket connection to the backend ReAct agent stream.
+   - Interactive modal interfaces for **Azure Logic Apps SOAR Playbook execution**, **Entra ID live user assignment**, and **NIST-compliant incident classification & closure**.
+   - AI-powered Natural Language $\rightarrow$ KQL generator with live query execution against Log Analytics.
+
+2. **⚡ Application & Security Gateway (FastAPI + Python 3.11):**
+   - Async REST APIs & WebSocket handlers with stateless JWT authentication.
+   - **Zero-Trust Security:** Ephemeral startup passwords with mandatory first-login password reset.
+   - **Executive Briefing Engine:** Synthesizes publication-grade PDF reports (formatted with WeasyPrint), Markdown, and JSON with dynamic AI model stamps and SHA-256 signature verification hashes.
+
+3. **🧠 Autonomous Cognitive Reasoning Engine (ReAct + Hybrid Router):**
+   - **Intelligent Hybrid Model Segregation:** Automatically routes ~80% of routine alerts to `gpt-4o-mini` (sub-second latency, low token cost) and escalates ~20% of high-severity, multi-stage, or APT-pattern attacks to `gpt-6-astra` for deep forensic root-cause analysis.
+   - Executes multi-turn ReAct loops extracting entities, correlating external threat intelligence, synthesizing dynamic KQL hunting queries, and calculating True/False Positive probabilities.
+
+4. **☁️ Microsoft Azure & External Intelligence Ecosystem:**
+   - **Microsoft Sentinel (ARM REST API):** Incident lifecycle management, bi-directional status updates, structured investigation comments, and automated tagging (`Playbook:<Name>`, `SOAR-Automated`).
+   - **Azure Log Analytics (`LogsQueryClient`):** High-speed telemetry execution across `SigninLogs`, `DeviceProcessEvents`, `DeviceNetworkEvents`, `SecurityEvent`.
+   - **Microsoft Entra ID (Graph API):** Live SOC directory querying (`User.Read.All`) and active session revocation / account containment (`User.ReadWrite.All`).
+   - **Azure Logic Apps & SOAR Playbooks:** 8 enterprise workflows for automated host isolation, session revocation, firewall blocking, and ITSM ServiceNow ticketing.
+   - **Threat Intelligence:** Multi-source reputation lookups across AbuseIPDB, VirusTotal, and Microsoft Defender Threat Intelligence (MDTI).
 
 ---
 
