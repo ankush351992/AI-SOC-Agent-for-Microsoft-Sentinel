@@ -15,7 +15,7 @@
 
 **An enterprise-grade, autonomous AI SOC analyst agent built for Microsoft Sentinel, Microsoft Defender XDR, and Azure Entra ID.**
 
-[Explore Features](#-key-platform-capabilities) • [Instant Setup](#-instant-3-minute-setup-guide) • [Permissions Guide](#-azure-service-principal--permissions-matrix) • [Architecture](#%EF%B8%8F-system-architecture) • [Deployment](#-docker-container-deployment)
+[Explore Features](#-key-platform-capabilities) • [Instant Setup](#-instant-3-minute-setup-guide) • [Permissions Guide](#-azure-service-principal--permissions-matrix) • [Cost Estimation](TSHIRT_COST_ESTIMATION.md) • [Architecture](#%EF%B8%8F-system-architecture) • [Deployment](#-docker-container-deployment)
 
 </div>
 
