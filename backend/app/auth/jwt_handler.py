@@ -3,7 +3,7 @@ from typing import Optional
 import hashlib
 import secrets
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from app.config import settings
@@ -113,17 +113,30 @@ def init_default_users() -> dict:
 # Ensure default users are initialized on module load
 init_default_users()
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def get_client_fingerprint(request: Optional[Request]) -> Optional[str]:
+    """Derive a binding fingerprint from the client's IP and User-Agent so a stolen
+    token cannot be replayed from a different client/location."""
+    if request is None:
+        return None
+    client_host = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")
+    raw = f"{client_host}|{user_agent}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None, request: Optional[Request] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+    fingerprint = get_client_fingerprint(request)
+    if fingerprint:
+        to_encode.update({"fp": fingerprint})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -133,7 +146,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
         role: str = payload.get("role", "analyst")
+        token_fp: str = payload.get("fp")
         if username is None:
+            raise credentials_exception
+        if token_fp and token_fp != get_client_fingerprint(request):
             raise credentials_exception
         token_data = TokenData(username=username, role=role)
     except JWTError:

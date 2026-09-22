@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 @router.post("/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
     user_dict = USERS_DB.get(form_data.username)
     if not user_dict or not verify_password(form_data.password, user_dict["hashed_password"]):
         raise HTTPException(
@@ -40,7 +40,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     
     access_token = create_access_token(
-        data={"sub": user_dict["username"], "role": user_dict["role"]}
+        data={"sub": user_dict["username"], "role": user_dict["role"]}, request=request
     )
     return {
         "access_token": access_token,
@@ -50,7 +50,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     }
 
 @router.post("/json-login", response_model=Token)
-async def json_login(credentials: LoginRequest):
+async def json_login(credentials: LoginRequest, request: Request):
     user_dict = USERS_DB.get(credentials.username)
     if not user_dict or not verify_password(credentials.password, user_dict["hashed_password"]):
         raise HTTPException(
@@ -72,7 +72,7 @@ async def json_login(credentials: LoginRequest):
         )
     
     access_token = create_access_token(
-        data={"sub": user_dict["username"], "role": user_dict["role"]}
+        data={"sub": user_dict["username"], "role": user_dict["role"]}, request=request
     )
     return {
         "access_token": access_token,
@@ -82,7 +82,7 @@ async def json_login(credentials: LoginRequest):
     }
 
 @router.post("/reset-password", response_model=Token)
-async def reset_password(payload: ResetPasswordRequest):
+async def reset_password(payload: ResetPasswordRequest, request: Request):
     user_dict = USERS_DB.get(payload.username)
     if not user_dict or not verify_password(payload.current_password, user_dict["hashed_password"]):
         raise HTTPException(
@@ -109,7 +109,7 @@ async def reset_password(payload: ResetPasswordRequest):
     user_dict["must_reset_password"] = False
     
     access_token = create_access_token(
-        data={"sub": user_dict["username"], "role": user_dict["role"]}
+        data={"sub": user_dict["username"], "role": user_dict["role"]}, request=request
     )
     return {
         "access_token": access_token,
