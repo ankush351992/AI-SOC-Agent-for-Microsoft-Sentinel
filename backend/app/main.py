@@ -1,14 +1,14 @@
 import os
 import json
 import logging
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from contextlib import asynccontextmanager
 from app.config import settings
-from app.auth.jwt_handler import init_default_users
+from app.auth.jwt_handler import init_default_users, get_user_from_token
 from app.auth.routes import router as auth_router
 from app.api.incidents import router as incidents_router
 from app.api.triage import router as triage_router, TRIAGE_REPORTS_CACHE
@@ -62,6 +62,11 @@ async def readyz():
 # Real-time WebSocket Stream for Live Investigation Trails
 @app.websocket("/ws/triage/{incident_id}")
 async def websocket_triage_stream(websocket: WebSocket, incident_id: str):
+    # Browsers cannot set an Authorization header on WebSockets, so the JWT is passed as ?token=
+    user = get_user_from_token(websocket.query_params.get("token"))
+    if user is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     await websocket.accept()
     logger.info(f"WebSocket connected for incident triage stream: {incident_id}")
     

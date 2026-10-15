@@ -115,6 +115,11 @@ async def update_system_settings(req: SettingsUpdateRequest, current_user: User 
             detail="Access Denied: Only SOC Admin users are authorized to modify Azure and Threat Intelligence settings."
         )
 
+    # Values are persisted line-by-line to .env; reject line breaks so a value cannot inject extra settings
+    for field_name, value in req.model_dump().items():
+        if isinstance(value, str) and ("\n" in value or "\r" in value):
+            raise HTTPException(status_code=400, detail=f"Invalid value for '{field_name}': line breaks are not allowed.")
+
     if req.azure_subscription_id is not None and req.azure_subscription_id.strip() != "":
         settings.AZURE_SUBSCRIPTION_ID = req.azure_subscription_id
     if req.azure_resource_group_name is not None and req.azure_resource_group_name.strip() != "":
