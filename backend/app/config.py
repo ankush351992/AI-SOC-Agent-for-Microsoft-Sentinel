@@ -1,5 +1,16 @@
+import logging
+import secrets
 from pydantic_settings import BaseSettings
 from typing import Optional, List
+
+# Placeholder JWT keys that have been published in this repository and must never be used
+KNOWN_INSECURE_SECRET_KEYS = {
+    "sentinel-super-secret-key-change-in-production-2026",
+    "change-to-a-secure-random-secret-key-for-jwt",
+    "generate-a-secure-random-256-bit-key-for-jwt-here",
+    "replace-with-a-secure-random-secret-key-in-production",
+}
+MIN_SECRET_KEY_LENGTH = 32
 
 class Settings(BaseSettings):
     # Application Config
@@ -11,7 +22,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["*"]
     
     # JWT Authentication
-    SECRET_KEY: str = "sentinel-super-secret-key-change-in-production-2026"
+    SECRET_KEY: Optional[str] = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 12 # 12 hours
     ADMIN_USERNAME: str = "soc_admin"
@@ -58,3 +69,25 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+
+def _ensure_secure_secret_key(cfg: Settings) -> None:
+    """
+    Refuse to sign JWTs with a missing, short, or publicly known key.
+    In DEMO_MODE a random per-process key is generated (tokens are invalidated on restart);
+    in live mode the application refuses to start.
+    """
+    key = cfg.SECRET_KEY
+    if key and len(key) >= MIN_SECRET_KEY_LENGTH and key not in KNOWN_INSECURE_SECRET_KEYS:
+        return
+    if not cfg.DEMO_MODE:
+        raise RuntimeError(
+            "SECRET_KEY is missing, shorter than 32 characters, or a published placeholder. "
+            "Set SECRET_KEY to a random value, e.g. `python -c \"import secrets; print(secrets.token_urlsafe(64))\"`."
+        )
+    cfg.SECRET_KEY = secrets.token_urlsafe(64)
+    logging.getLogger("sentinel_soc_agent.config").warning(
+        "SECRET_KEY not set or insecure; generated an ephemeral JWT signing key for DEMO_MODE. "
+        "Tokens will be invalidated on restart."
+    )
+
+_ensure_secure_secret_key(settings)

@@ -12,7 +12,9 @@ services:
       - APP_ENV=production
       - DEMO_MODE=true
       - ADMIN_USERNAME=soc_admin
-      - SECRET_KEY=sentinel-super-secret-key-change-in-production-2026
+      # Set SECRET_KEY in your shell or a .env file (required when DEMO_MODE=false):
+      #   python -c "import secrets; print(secrets.token_urlsafe(64))"
+      - SECRET_KEY=${SECRET_KEY:-}
       # Azure Sentinel Configuration (Uncomment and fill when live)
       # - AZURE_TENANT_ID=your-tenant-id
       # - AZURE_CLIENT_ID=your-client-id
